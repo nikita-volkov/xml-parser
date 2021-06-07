@@ -10,6 +10,7 @@ module XmlTypesParser
 
     -- ** Element
     Element,
+    elementName,
     children,
     childrenByName,
     attributesByName,
@@ -63,6 +64,12 @@ newtype Element a
   deriving
     (Functor, Applicative, Monad)
     via (ReaderT Xml.Element (Except Error))
+
+-- |
+-- Parse namespace and name with the given function.
+elementName :: (Maybe Text -> Text -> Either Text a) -> Element a
+elementName =
+  error "TODO"
 
 -- |
 -- Look up the first element by name and parse it.
