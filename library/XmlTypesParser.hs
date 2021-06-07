@@ -38,6 +38,9 @@ data Reason
 
 newtype Element a
   = Element (Xml.Element -> Either Error a)
+  deriving
+    (Functor, Applicative, Monad)
+    via (ReaderT Xml.Element (Except Error))
 
 -- |
 -- Look up the first element by name and parse it.
