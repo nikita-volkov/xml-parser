@@ -29,4 +29,5 @@ library
     attoparsec >=0.13 && <0.15,
     base >=4.11 && <5,
     text >=1.2.4 && <2,
+    unordered-containers ^>=0.2.14,
     xml-types ^>=0.3.8,
