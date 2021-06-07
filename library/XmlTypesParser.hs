@@ -3,13 +3,21 @@ module XmlTypesParser
     parseElement,
     Error (..),
     Location (..),
+    Reason (..),
+    NodeType (..),
 
     -- * Parsers by context
 
     -- ** Element
     Element,
+    children,
     childrenByName,
     attributesByName,
+
+    -- ** Nodes
+    Nodes,
+    elementNode,
+    textNode,
 
     -- ** ByName
     ByName,
@@ -30,11 +38,25 @@ data Error = Error [Location] Reason
 data Location
   = ByNameLocation (Maybe Text) Text
   | AtOffsetLocation Int
+  | ChildrenLocation
+  | AttributesLocation
 
 data Reason
   = NameNotFoundReason (Maybe Text) Text
   | AttoparsecFailedReason Text
   | NoReason
+  | UnexpectedNodeTypeReason
+      NodeType
+      -- ^ Actual.
+      NodeType
+      -- ^ Expected.
+  | NoNodesLeftReason
+
+data NodeType
+  = ElementNodeType
+  | InstructionNodeType
+  | ContentNodeType
+  | CommentNodeType
 
 newtype Element a
   = Element (Xml.Element -> Either Error a)
@@ -61,16 +83,41 @@ attributesByName =
 -- |
 -- Children sequence by order.
 children :: Nodes a -> Element a
-children =
-  error "TODO"
+children (Nodes runNodes) =
+  Element $ \(Xml.Element _ _ nodes) ->
+    runNodes (nodes, 0) & fst & first (consLocationToError ChildrenLocation)
 
 -- |
 -- Parser in the context of a sequence of nodes.
-data Nodes a
+newtype Nodes a
+  = Nodes (([Xml.Node], Int) -> (Either Error a, ([Xml.Node], Int)))
+  deriving
+    (Functor, Applicative, Monad)
+    via (ExceptT Error (State ([Xml.Node], Int)))
 
 elementNode :: Element a -> Nodes a
-elementNode =
-  error "TODO"
+elementNode (Element runElement) =
+  Nodes $ \(nodes, offset) ->
+    case nodes of
+      node : nodes -> case node of
+        Xml.NodeElement element ->
+          ( first
+              (consLocationToError (AtOffsetLocation offset))
+              (runElement element),
+            (nodes, succ offset)
+          )
+        Xml.NodeInstruction _ -> failWithUnexpectedNodeType InstructionNodeType
+        Xml.NodeContent _ -> failWithUnexpectedNodeType ContentNodeType
+        Xml.NodeComment _ -> failWithUnexpectedNodeType CommentNodeType
+        where
+          failWithUnexpectedNodeType actualType =
+            ( Left (Error [AtOffsetLocation offset] (UnexpectedNodeTypeReason ElementNodeType actualType)),
+              (nodes, succ offset)
+            )
+      _ ->
+        ( Left (Error [AtOffsetLocation offset] NoNodesLeftReason),
+          ([], succ offset)
+        )
 
 textNode :: Atto.Parser a -> Nodes a
 textNode =
@@ -154,3 +201,6 @@ nodesToElementsByName =
   mapMaybe $ \case
     Xml.NodeElement element -> Just (Xml.elementName element, element)
     _ -> Nothing
+
+consLocationToError :: Location -> Error -> Error
+consLocationToError loc (Error path reason) = Error (loc : path) reason
