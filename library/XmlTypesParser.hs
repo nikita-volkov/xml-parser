@@ -11,6 +11,7 @@ module XmlTypesParser
     -- ** Element
     Element,
     elementName,
+    elementNameIs,
     children,
     childrenByName,
     attributesByName,
@@ -76,6 +77,12 @@ newtype Element a
 -- Parse namespace and name with the given function.
 elementName :: (Maybe Text -> Text -> Either Text a) -> Element a
 elementName =
+  error "TODO"
+
+-- |
+-- Fail if the namespace and name don't match the provided.
+elementNameIs :: Maybe Text -> Text -> Element ()
+elementNameIs =
   error "TODO"
 
 -- |
