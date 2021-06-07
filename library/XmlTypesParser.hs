@@ -49,15 +49,14 @@ data Location
 -- |
 -- Reason of an error.
 data Reason
-  = NameNotFoundReason (Maybe Text) Text
-  | AttoparsecFailedReason Text
-  | NoReason
+  = AttoparsecFailedReason Text
   | UnexpectedNodeTypeReason
       NodeType
       -- ^ Actual.
       NodeType
       -- ^ Expected.
   | NoNodesLeftReason
+  | NoneOfChildrenFoundByNameReason [(Maybe Text, Text)]
 
 data NodeType
   = ElementNodeType
@@ -85,7 +84,10 @@ childrenByName :: ByName Element a -> Element a
 childrenByName =
   \(ByName runByName) -> Element $ \element ->
     let lookup = buildByNameLookup (nodesToElementsByName (Xml.elementNodes element))
-     in runByName lookup exec
+     in case runByName lookup exec of
+          Left unfoundNames ->
+            Left (Error [] (NoneOfChildrenFoundByNameReason unfoundNames))
+          Right res -> res
   where
     exec element (Element run) = run element
 
@@ -146,40 +148,46 @@ textNode =
 -- Composable extension to a parser, which looks up its input by name.
 --
 -- Useful for searching elements and attributes by name.
+--
+-- Alternative and MonadPlus alternate only on lookup errors.
+-- When lookup is successful, but the deeper parser fails,
+-- the error propagates.
 newtype ByName parser a
   = ByName
       ( forall content.
         (Maybe Text -> Text -> Maybe content) ->
         (forall a. content -> parser a -> Either Error a) ->
-        Either Error a
+        Either [(Maybe Text, Text)] (Either Error a)
       )
 
 instance Functor (ByName parser) where
   fmap fn (ByName run) =
-    ByName $ \lookup exec -> fmap fn $ run lookup exec
+    ByName $ \lookup exec -> fmap (fmap fn) $ run lookup exec
 
 instance Applicative (ByName parser) where
   pure x =
-    ByName $ const $ const $ Right x
+    ByName $ const $ const $ Right $ Right x
   ByName runL <*> ByName runR =
     ByName $ \lookup exec -> case runL lookup exec of
-      Left error -> Left error
-      Right lRes -> runR lookup exec & fmap lRes
+      Right (Right lRes) -> runR lookup exec & fmap (fmap lRes)
+      Right (Left err) -> Right (Left err)
+      Left unfoundNames -> Left unfoundNames
 
 instance Monad (ByName parser) where
   return = pure
   ByName runL >>= k =
     ByName $ \lookup exec -> case runL lookup exec of
-      Left error -> Left error
-      Right lRes -> case k lRes of ByName runR -> runR lookup exec
+      Right (Right lRes) -> case k lRes of ByName runR -> runR lookup exec
+      Right (Left err) -> Right (Left err)
+      Left unfoundNames -> Left unfoundNames
 
 instance Alternative (ByName parser) where
   empty =
-    ByName $ const $ const $ Left $ Error [] NoReason
+    ByName $ const $ const $ Left []
   ByName runL <|> ByName runR =
     ByName $ \lookup exec -> case runL lookup exec of
-      Left error -> runR lookup exec
       Right lRes -> Right lRes
+      Left _ -> runR lookup exec
 
 instance MonadPlus (ByName parser) where
   mzero = empty
@@ -191,9 +199,9 @@ byName :: Maybe Text -> Text -> parser a -> ByName parser a
 byName ns name parser =
   ByName $ \lookup exec -> case lookup ns name of
     Just content -> case exec content parser of
-      Right a -> Right a
-      Left (Error path reason) -> Left (Error (ByNameLocation ns name : path) reason)
-    Nothing -> Left (Error [] (NameNotFoundReason ns name))
+      Right a -> Right (Right a)
+      Left err -> Right (Left (consLocationToError (ByNameLocation ns name) err))
+    Nothing -> Left [(ns, name)]
 
 {-# INLINE buildByNameLookup #-}
 buildByNameLookup :: Foldable f => f (Xml.Name, a) -> Maybe Text -> Text -> Maybe a
