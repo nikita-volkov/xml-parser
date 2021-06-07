@@ -26,6 +26,7 @@ library
   other-modules:
     XmlTypesParser.Prelude
   build-depends:
+    attoparsec >=0.13 && <0.15,
     base >=4.11 && <5,
     text >=1.2.4 && <2,
     xml-types ^>=0.3.8,
