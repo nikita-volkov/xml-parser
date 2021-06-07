@@ -33,6 +33,7 @@ data Location
 
 data Reason
   = NameNotFoundReason (Maybe Text) Text
+  | AttoparsecFailedReason Text
   | NoReason
 
 newtype Element a
