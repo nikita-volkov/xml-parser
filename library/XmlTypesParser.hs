@@ -31,9 +31,13 @@ import qualified Data.HashMap.Strict as HashMap
 import qualified Data.XML.Types as Xml
 import XmlTypesParser.Prelude
 
+-- |
+-- Parse an \"xml-types\" element AST.
 parseElement :: Element a -> Xml.Element -> Either Error a
 parseElement (Element run) = run
 
+-- |
+-- Parsing error.
 data Error = Error [Location] Reason
 
 data Location
@@ -42,6 +46,8 @@ data Location
   | ChildrenLocation
   | AttributesLocation
 
+-- |
+-- Reason of an error.
 data Reason
   = NameNotFoundReason (Maybe Text) Text
   | AttoparsecFailedReason Text
@@ -59,6 +65,8 @@ data NodeType
   | ContentNodeType
   | CommentNodeType
 
+-- |
+-- Parse in the context of an element node.
 newtype Element a
   = Element (Xml.Element -> Either Error a)
   deriving
@@ -102,6 +110,8 @@ newtype Nodes a
     (Functor, Applicative, Monad)
     via (ExceptT Error (State ([Xml.Node], Int)))
 
+-- |
+-- Consume the next node expecting it to be element.
 elementNode :: Element a -> Nodes a
 elementNode (Element runElement) =
   Nodes $ \(nodes, offset) ->
@@ -126,10 +136,16 @@ elementNode (Element runElement) =
           ([], succ offset)
         )
 
+-- |
+-- Consume the next node expecting it to be textual and parse its contents with \"attoparsec\".
 textNode :: Atto.Parser a -> Nodes a
 textNode =
   error "TODO"
 
+-- |
+-- Composable extension to a parser, which looks up its input by name.
+--
+-- Useful for searching elements and attributes by name.
 newtype ByName parser a
   = ByName
       ( forall content.
@@ -169,6 +185,8 @@ instance MonadPlus (ByName parser) where
   mzero = empty
   mplus = (<|>)
 
+-- |
+-- Execute a parser on the result of looking up a content by namespace and name.
 byName :: Maybe Text -> Text -> parser a -> ByName parser a
 byName ns name parser =
   ByName $ \lookup exec -> case lookup ns name of
