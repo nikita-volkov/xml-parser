@@ -27,5 +27,5 @@ library
     XmlTypesParser.Prelude
   build-depends:
     base >=4.11 && <5,
-    text ^>=1.2.4,
+    text >=1.2.4 && <2,
     xml-types ^>=0.3.8,
