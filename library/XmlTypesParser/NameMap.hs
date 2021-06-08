@@ -7,7 +7,7 @@ where
 
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.XML.Types as Xml
-import XmlTypesParser.Prelude
+import XmlTypesParser.Prelude hiding (fromList)
 
 data NameMap a
   = NameMap
