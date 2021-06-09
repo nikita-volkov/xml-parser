@@ -91,7 +91,7 @@ elementNameIs =
 childrenByName :: ByName Element a -> Element a
 childrenByName =
   \(ByName runByName) -> Element $ \element ->
-    let map = NameMap.fromList (nodesToElementsByName (Xml.elementNodes element))
+    let map = NameMap.fromNodes (Xml.elementNodes element)
      in case runByName map parse of
           OkByNameResult _ res -> Right res
           NotFoundByNameResult unfoundNames ->
@@ -228,12 +228,6 @@ byName ns name parser =
       Nothing -> NotFoundByNameResult [(ns, name)]
 
 -- * Utils
-
-nodesToElementsByName :: [Xml.Node] -> [(Xml.Name, Xml.Element)]
-nodesToElementsByName =
-  mapMaybe $ \case
-    Xml.NodeElement element -> Just (Xml.elementName element, element)
-    _ -> Nothing
 
 consLocationToError :: Location -> Error -> Error
 consLocationToError loc (Error path reason) = Error (loc : path) reason
