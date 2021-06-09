@@ -30,6 +30,7 @@ where
 import qualified Data.Attoparsec.Text as Atto
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.XML.Types as Xml
+import qualified XmlTypesParser.NameMap as NameMap
 import XmlTypesParser.Prelude
 
 -- |
@@ -90,13 +91,15 @@ elementNameIs =
 childrenByName :: ByName Element a -> Element a
 childrenByName =
   \(ByName runByName) -> Element $ \element ->
-    let lookup = buildByNameLookup (nodesToElementsByName (Xml.elementNodes element))
-     in case runByName lookup exec of
-          Left unfoundNames ->
+    let map = NameMap.fromList (nodesToElementsByName (Xml.elementNodes element))
+     in case runByName map parse of
+          OkByNameResult _ res -> Right res
+          NotFoundByNameResult unfoundNames ->
             Left (Error [] (NoneOfChildrenFoundByNameReason unfoundNames))
-          Right res -> res
+          FailedDeeperByNameResult ns name err ->
+            Left (consLocationToError (ByNameLocation ns name) err)
   where
-    exec element (Element run) = run element
+    parse element (Element run) = run element
 
 -- |
 -- Look up the first attribute by name and parse it.
@@ -151,6 +154,14 @@ textNode :: Atto.Parser a -> Nodes a
 textNode =
   error "TODO"
 
+-- * ByName
+
+data ByNameResult content a
+  = NotFoundByNameResult [(Maybe Text, Text)]
+  | FailedDeeperByNameResult (Maybe Text) Text Error
+  | OkByNameResult (NameMap.NameMap content) a
+  deriving (Functor)
+
 -- |
 -- Composable extension to a parser, which looks up its input by name.
 --
@@ -159,42 +170,47 @@ textNode =
 -- Alternative and MonadPlus alternate only on lookup errors.
 -- When lookup is successful, but the deeper parser fails,
 -- the error propagates.
+--
+-- Monad and Applicative sequentially fetch contents by matching names.
 newtype ByName parser a
   = ByName
       ( forall content.
-        (Maybe Text -> Text -> Maybe content) ->
-        (forall a. content -> parser a -> Either Error a) ->
-        Either [(Maybe Text, Text)] (Either Error a)
+        NameMap.NameMap content ->
+        (content -> forall x. parser x -> Either Error x) ->
+        ByNameResult content a
       )
 
 instance Functor (ByName parser) where
   fmap fn (ByName run) =
-    ByName $ \lookup exec -> fmap (fmap fn) $ run lookup exec
+    ByName $ \map parse -> fmap fn (run map parse)
 
 instance Applicative (ByName parser) where
   pure x =
-    ByName $ const $ const $ Right $ Right x
+    ByName $ \map _ -> OkByNameResult map x
   ByName runL <*> ByName runR =
-    ByName $ \lookup exec -> case runL lookup exec of
-      Right (Right lRes) -> runR lookup exec & fmap (fmap lRes)
-      Right (Left err) -> Right (Left err)
-      Left unfoundNames -> Left unfoundNames
+    ByName $ \map parse -> case runL map parse of
+      OkByNameResult map lRes -> runR map parse & fmap lRes
+      NotFoundByNameResult unfoundNames -> NotFoundByNameResult unfoundNames
+      FailedDeeperByNameResult ns name err -> FailedDeeperByNameResult ns name err
 
 instance Monad (ByName parser) where
   return = pure
   ByName runL >>= k =
-    ByName $ \lookup exec -> case runL lookup exec of
-      Right (Right lRes) -> case k lRes of ByName runR -> runR lookup exec
-      Right (Left err) -> Right (Left err)
-      Left unfoundNames -> Left unfoundNames
+    ByName $ \map parse -> case runL map parse of
+      OkByNameResult map lRes -> case k lRes of ByName runR -> runR map parse
+      NotFoundByNameResult unfoundNames -> NotFoundByNameResult unfoundNames
+      FailedDeeperByNameResult ns name err -> FailedDeeperByNameResult ns name err
 
 instance Alternative (ByName parser) where
   empty =
-    ByName $ const $ const $ Left []
+    ByName $ const $ const $ NotFoundByNameResult []
   ByName runL <|> ByName runR =
-    ByName $ \lookup exec -> case runL lookup exec of
-      Right lRes -> Right lRes
-      Left _ -> runR lookup exec
+    ByName $ \map parse -> case runL map parse of
+      OkByNameResult map lRes -> OkByNameResult map lRes
+      NotFoundByNameResult unfoundNamesL -> case runR map parse of
+        NotFoundByNameResult unfoundNamesR -> NotFoundByNameResult (unfoundNamesL <> unfoundNamesR)
+        resR -> resR
+      FailedDeeperByNameResult ns name err -> FailedDeeperByNameResult ns name err
 
 instance MonadPlus (ByName parser) where
   mzero = empty
@@ -204,38 +220,15 @@ instance MonadPlus (ByName parser) where
 -- Execute a parser on the result of looking up a content by namespace and name.
 byName :: Maybe Text -> Text -> parser a -> ByName parser a
 byName ns name parser =
-  ByName $ \lookup exec -> case lookup ns name of
-    Just content -> case exec content parser of
-      Right a -> Right (Right a)
-      Left err -> Right (Left (consLocationToError (ByNameLocation ns name) err))
-    Nothing -> Left [(ns, name)]
+  ByName $ \map parse ->
+    case NameMap.fetch ns name map of
+      Just (content, map) -> case parse content parser of
+        Right a -> OkByNameResult map a
+        Left err -> FailedDeeperByNameResult ns name err
+      Nothing -> NotFoundByNameResult [(ns, name)]
 
-{-# INLINE buildByNameLookup #-}
-buildByNameLookup :: Foldable f => f (Xml.Name, a) -> Maybe Text -> Text -> Maybe a
-buildByNameLookup list =
-  foldr step lookup list HashMap.empty HashMap.empty
-  where
-    step (Xml.Name name ns _, contents) next !map1 !map2 =
-      case ns of
-        Just ns ->
-          next
-            ( HashMap.alter
-                ( maybe
-                    (Just (HashMap.singleton name contents))
-                    (Just . HashMap.insert name contents)
-                )
-                ns
-                map1
-            )
-            map2
-        Nothing ->
-          next map1 (HashMap.insert name contents map2)
-    lookup map1 map2 ns name =
-      case ns of
-        Just ns -> HashMap.lookup ns map1 >>= HashMap.lookup name
-        Nothing -> HashMap.lookup name map2
+-- * Utils
 
-{-# INLINE nodesToElementsByName #-}
 nodesToElementsByName :: [Xml.Node] -> [(Xml.Name, Xml.Element)]
 nodesToElementsByName =
   mapMaybe $ \case
