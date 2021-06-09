@@ -23,18 +23,15 @@ data NameMap a
 
 fromNodes :: [Xml.Node] -> NameMap Xml.Element
 fromNodes =
-  foldl'
-    ( \map -> \case
-        Xml.NodeElement element ->
-          case Xml.elementName element of
-            Xml.Name name ns _ -> insert ns name element map
-        _ -> map
-    )
-    empty
+  fromReverseList . foldl' appendIfElement []
+  where
+    appendIfElement list = \case
+      Xml.NodeElement element -> (Xml.elementName element, element) : list
+      _ -> list
 
 fromList :: [(Xml.Name, a)] -> NameMap a
 fromList =
-  foldl' (\map (Xml.Name name ns _, a) -> insert ns name a map) empty
+  fromReverseList . reverse
 
 fromReverseList :: [(Xml.Name, a)] -> NameMap a
 fromReverseList list =
