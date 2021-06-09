@@ -2,13 +2,15 @@ module XmlTypesParser.NameMap
   ( NameMap,
     fromList,
     fromReverseList,
+    empty,
+    insert,
     fetch,
   )
 where
 
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.XML.Types as Xml
-import XmlTypesParser.Prelude hiding (fromList)
+import XmlTypesParser.Prelude hiding (empty, fromList, insert)
 import qualified XmlTypesParser.TupleHashMap as TupleHashMap
 
 data NameMap a
@@ -32,6 +34,18 @@ fromReverseList list =
           next (TupleHashMap.insertSemigroup ns name [contents] map1) map2
         Nothing ->
           next map1 (HashMap.insertWith (++) name [contents] map2)
+
+empty :: NameMap a
+empty =
+  NameMap TupleHashMap.empty HashMap.empty
+
+insert :: Maybe Text -> Text -> a -> NameMap a -> NameMap a
+insert ns name contents (NameMap map1 map2) =
+  case ns of
+    Just ns ->
+      NameMap (TupleHashMap.insertSemigroup ns name [contents] map1) map2
+    Nothing ->
+      NameMap map1 (HashMap.insertWith (++) name [contents] map2)
 
 fetch :: Maybe Text -> Text -> NameMap a -> Maybe (a, NameMap a)
 fetch ns name (NameMap map1 map2) =
