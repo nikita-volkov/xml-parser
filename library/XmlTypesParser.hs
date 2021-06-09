@@ -90,14 +90,13 @@ elementNameIs =
 -- Look up the first element by name and parse it.
 childrenByName :: ByName Element a -> Element a
 childrenByName =
-  \(ByName runByName) -> Element $ \element ->
-    let map = NameMap.fromNodes (Xml.elementNodes element)
-     in case runByName map parse of
-          OkByNameResult _ res -> Right res
-          NotFoundByNameResult unfoundNames ->
-            Left (Error [] (NoneOfChildrenFoundByNameReason unfoundNames))
-          FailedDeeperByNameResult ns name err ->
-            Left (consLocationToError (ByNameLocation ns name) err)
+  \(ByName runByName) -> Element $ \(Xml.Element _ _ nodes) ->
+    case runByName (NameMap.fromNodes nodes) parse of
+      OkByNameResult _ res -> Right res
+      NotFoundByNameResult unfoundNames ->
+        Left (Error [] (NoneOfChildrenFoundByNameReason unfoundNames))
+      FailedDeeperByNameResult ns name err ->
+        Left (consLocationToError (ByNameLocation ns name) err)
   where
     parse element (Element run) = run element
 
