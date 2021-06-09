@@ -1,5 +1,6 @@
 module XmlTypesParser.NameMap
   ( NameMap,
+    fromNodes,
     fromList,
     fromReverseList,
     empty,
@@ -19,6 +20,17 @@ data NameMap a
       -- ^ Namespaced
       (HashMap Text [a])
       -- ^ Unnamespaced
+
+fromNodes :: [Xml.Node] -> NameMap Xml.Element
+fromNodes =
+  foldl'
+    ( \map -> \case
+        Xml.NodeElement element ->
+          case Xml.elementName element of
+            Xml.Name name ns _ -> insert ns name element map
+        _ -> map
+    )
+    empty
 
 fromList :: [(Xml.Name, a)] -> NameMap a
 fromList =
