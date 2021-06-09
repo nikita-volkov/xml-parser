@@ -34,7 +34,7 @@ fromNodes =
 
 fromList :: [(Xml.Name, a)] -> NameMap a
 fromList =
-  fromReverseList . reverse
+  foldl' (\map (Xml.Name name ns _, a) -> insert ns name a map) empty
 
 fromReverseList :: [(Xml.Name, a)] -> NameMap a
 fromReverseList list =
