@@ -8,10 +8,11 @@ where
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.XML.Types as Xml
 import XmlTypesParser.Prelude hiding (fromList)
+import qualified XmlTypesParser.TupleHashMap as TupleHashMap
 
 data NameMap a
   = NameMap
-      (HashMap Text (HashMap Text [a]))
+      (TupleHashMap.TupleHashMap Text Text [a])
       -- ^ Namespaced
       (HashMap Text [a])
       -- ^ Unnamespaced
@@ -19,21 +20,12 @@ data NameMap a
 {-# INLINE fromList #-}
 fromList :: [(Xml.Name, a)] -> NameMap a
 fromList list =
-  foldr step NameMap (reverse list) HashMap.empty HashMap.empty
+  foldr step NameMap (reverse list) TupleHashMap.empty HashMap.empty
   where
     step (Xml.Name name ns _, contents) next !map1 !map2 =
       case ns of
         Just ns ->
-          next
-            ( HashMap.alter
-                ( maybe
-                    (Just (HashMap.singleton name [contents]))
-                    (Just . HashMap.insertWith (++) name [contents])
-                )
-                ns
-                map1
-            )
-            map2
+          next (TupleHashMap.insertSemigroup ns name [contents] map1) map2
         Nothing ->
           next map1 (HashMap.insertWith (++) name [contents] map2)
 
@@ -41,27 +33,19 @@ fetch :: Maybe Text -> Text -> NameMap a -> Maybe (a, NameMap a)
 fetch ns name (NameMap map1 map2) =
   case ns of
     Just ns ->
-      HashMap.alterF
+      TupleHashMap.alterF
         ( \case
-            Just byNameMap ->
-              HashMap.alterF
-                ( \case
-                    Just list ->
-                      case list of
-                        head : tail -> case tail of
-                          [] -> Compose (Just (head, Nothing))
-                          _ -> Compose (Just (head, Just tail))
-                        _ -> Compose Nothing
-                    Nothing ->
-                      Compose Nothing
-                )
-                name
-                byNameMap
-                & fmap Just
+            Just list ->
+              case list of
+                head : tail -> case tail of
+                  [] -> Compose (Just (head, Nothing))
+                  _ -> Compose (Just (head, Just tail))
+                _ -> Compose Nothing
             Nothing ->
               Compose Nothing
         )
         ns
+        name
         map1
         & getCompose
         & fmap (fmap (flip NameMap map2))
