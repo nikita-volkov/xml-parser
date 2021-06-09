@@ -36,6 +36,7 @@ import Data.Functor as Exports
 import Data.Functor.Compose as Exports
 import Data.Functor.Identity as Exports
 import Data.HashMap.Strict as Exports (HashMap)
+import Data.Hashable as Exports (Hashable)
 import Data.IORef as Exports
 import Data.Int as Exports
 import Data.Ix as Exports
