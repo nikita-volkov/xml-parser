@@ -1,6 +1,7 @@
 module XmlTypesParser.NameMap
   ( NameMap,
     fromList,
+    fromReverseList,
     fetch,
   )
 where
@@ -17,10 +18,13 @@ data NameMap a
       (HashMap Text [a])
       -- ^ Unnamespaced
 
-{-# INLINE fromList #-}
 fromList :: [(Xml.Name, a)] -> NameMap a
-fromList list =
-  foldr step NameMap (reverse list) TupleHashMap.empty HashMap.empty
+fromList =
+  fromReverseList . reverse
+
+fromReverseList :: [(Xml.Name, a)] -> NameMap a
+fromReverseList list =
+  foldr step NameMap list TupleHashMap.empty HashMap.empty
   where
     step (Xml.Name name ns _, contents) next !map1 !map2 =
       case ns of
