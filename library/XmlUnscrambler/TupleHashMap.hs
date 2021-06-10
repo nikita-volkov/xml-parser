@@ -1,4 +1,4 @@
-module XmlTypesParser.TupleHashMap
+module XmlUnscrambler.TupleHashMap
   ( TupleHashMap,
     KeyConstraints,
     empty,
@@ -8,7 +8,7 @@ module XmlTypesParser.TupleHashMap
 where
 
 import qualified Data.HashMap.Strict as HashMap
-import XmlTypesParser.Prelude hiding (empty, fromList)
+import XmlUnscrambler.Prelude hiding (empty, fromList)
 
 newtype TupleHashMap k1 k2 v = TupleHashMap (HashMap k1 (HashMap k2 v))
 

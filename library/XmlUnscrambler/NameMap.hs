@@ -1,4 +1,4 @@
-module XmlTypesParser.NameMap
+module XmlUnscrambler.NameMap
   ( NameMap,
     fromNodes,
     fromList,
@@ -11,8 +11,8 @@ where
 
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.XML.Types as Xml
-import XmlTypesParser.Prelude hiding (empty, fromList, insert)
-import qualified XmlTypesParser.TupleHashMap as TupleHashMap
+import XmlUnscrambler.Prelude hiding (empty, fromList, insert)
+import qualified XmlUnscrambler.TupleHashMap as TupleHashMap
 
 data NameMap a
   = NameMap

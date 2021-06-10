@@ -1,4 +1,4 @@
-module XmlTypesParser
+module XmlUnscrambler
   ( -- * Execution
     parseElement,
     Error (..),
@@ -30,8 +30,8 @@ where
 import qualified Data.Attoparsec.Text as Atto
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.XML.Types as Xml
-import qualified XmlTypesParser.NameMap as NameMap
-import XmlTypesParser.Prelude
+import qualified XmlUnscrambler.NameMap as NameMap
+import XmlUnscrambler.Prelude
 
 -- |
 -- Parse an \"xml-types\" element AST.

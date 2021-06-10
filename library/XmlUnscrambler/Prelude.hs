@@ -1,4 +1,4 @@
-module XmlTypesParser.Prelude
+module XmlUnscrambler.Prelude
   ( module Exports,
   )
 where

@@ -1,9 +1,9 @@
 cabal-version: 3.0
-name: xml-types-parser
+name: xml-unscrambler
 version: 0.1
 synopsis: Parser of xml-types AST
-homepage: https://github.com/nikita-volkov/xml-types-parser
-bug-reports: https://github.com/nikita-volkov/xml-types-parser/issues
+homepage: https://github.com/nikita-volkov/xml-unscrambler
+bug-reports: https://github.com/nikita-volkov/xml-unscrambler/issues
 author: Nikita Volkov <nikita.y.volkov@mail.ru>
 maintainer: Nikita Volkov <nikita.y.volkov@mail.ru>
 copyright: (c) 2021 Nikita Volkov
@@ -13,7 +13,7 @@ build-type: Simple
 
 source-repository head
   type: git
-  location: git://github.com/nikita-volkov/xml-types-parser.git
+  location: git://github.com/nikita-volkov/xml-unscrambler.git
 
 library
   hs-source-dirs: library
@@ -22,11 +22,11 @@ library
   ghc-options:
     -funbox-strict-fields
   exposed-modules:
-    XmlTypesParser
+    XmlUnscrambler
   other-modules:
-    XmlTypesParser.NameMap
-    XmlTypesParser.TupleHashMap
-    XmlTypesParser.Prelude
+    XmlUnscrambler.NameMap
+    XmlUnscrambler.TupleHashMap
+    XmlUnscrambler.Prelude
   build-depends:
     attoparsec >=0.13 && <0.15,
     base >=4.11 && <5,
