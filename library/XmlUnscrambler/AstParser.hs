@@ -86,7 +86,7 @@ elementNameIs =
   error "TODO"
 
 -- |
--- Look up the first element by name and parse it.
+-- Look up elements by name and parse them.
 childrenByName :: ByName Element a -> Element a
 childrenByName =
   \(ByName runByName) -> Element $ \(Xml.Element _ _ nodes) ->
