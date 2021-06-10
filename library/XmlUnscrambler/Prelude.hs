@@ -28,6 +28,7 @@ import Data.Char as Exports
 import Data.Coerce as Exports
 import Data.Complex as Exports
 import Data.Data as Exports
+import Data.Default.Class as Exports (Default (..))
 import Data.Dynamic as Exports
 import Data.Either as Exports
 import Data.Fixed as Exports
