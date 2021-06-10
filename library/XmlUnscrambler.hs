@@ -29,12 +29,12 @@ where
 
 import qualified Data.Attoparsec.Text as Atto
 import qualified Data.HashMap.Strict as HashMap
-import qualified Data.XML.Types as Xml
+import qualified Text.XML as Xml
 import qualified XmlUnscrambler.NameMap as NameMap
 import XmlUnscrambler.Prelude
 
 -- |
--- Parse an \"xml-types\" element AST.
+-- Parse an \"xml-conduit\" element AST.
 parseElement :: Element a -> Xml.Element -> Either Error a
 parseElement (Element run) = run
 

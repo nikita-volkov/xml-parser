@@ -10,7 +10,7 @@ module XmlUnscrambler.NameMap
 where
 
 import qualified Data.HashMap.Strict as HashMap
-import qualified Data.XML.Types as Xml
+import qualified Text.XML as Xml
 import XmlUnscrambler.Prelude hiding (empty, fromList, insert)
 import qualified XmlUnscrambler.TupleHashMap as TupleHashMap
 

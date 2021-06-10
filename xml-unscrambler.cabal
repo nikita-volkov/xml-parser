@@ -34,4 +34,4 @@ library
     text >=1.2.4 && <2,
     transformers ^>=0.5,
     unordered-containers ^>=0.2.14,
-    xml-types ^>=0.3.8,
+    xml-conduit ^>=1.9.1.1,
