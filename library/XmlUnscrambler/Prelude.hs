@@ -23,6 +23,7 @@ import Control.Monad.Trans.Writer.Strict as Exports (Writer, WriterT (..), execW
 import Data.Bifunctor as Exports
 import Data.Bits as Exports
 import Data.Bool as Exports
+import Data.ByteString as Exports (ByteString)
 import Data.Char as Exports
 import Data.Coerce as Exports
 import Data.Complex as Exports
