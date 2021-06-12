@@ -28,6 +28,7 @@ library
     XmlUnscrambler.NameMap
     XmlUnscrambler.TupleHashMap
     XmlUnscrambler.Prelude
+    XmlUnscrambler.XmlConduitWrapper
   build-depends:
     attoparsec >=0.13 && <0.15,
     base >=4.11 && <5,
