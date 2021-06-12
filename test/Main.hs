@@ -34,8 +34,8 @@ main =
                         ]
                     return (prefix <> [childByName "b" bContent])
 
-          let parser = do
-                Xu.childrenByName $ many $ Xu.byName Nothing "b" $ Xu.children $ Xu.textNode Atto.takeText
+          let parser =
+                Xu.childrenByName $ many $ Xu.byName Nothing "b" $ Xu.children $ Xu.textNodeAsIs
               result = Xu.parseByteString parser xml
 
           return (result === Right bContents)

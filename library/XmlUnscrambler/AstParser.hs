@@ -19,7 +19,8 @@ module XmlUnscrambler.AstParser
     -- ** Nodes
     Nodes,
     elementNode,
-    textNode,
+    textNodeAsIs,
+    textNodeParsed,
 
     -- ** ByName
     ByName,
@@ -148,8 +149,30 @@ elementNode (Element runElement) =
 
 -- |
 -- Consume the next node expecting it to be textual and parse its contents with \"attoparsec\".
-textNode :: Atto.Parser a -> Nodes a
-textNode =
+textNodeAsIs :: Nodes Text
+textNodeAsIs =
+  Nodes $ \(nodes, offset) ->
+    case nodes of
+      node : nodes -> case node of
+        Xml.NodeContent content ->
+          (Right content, (nodes, succ offset))
+        Xml.NodeElement _ -> failWithUnexpectedNodeType ElementNodeType
+        Xml.NodeInstruction _ -> failWithUnexpectedNodeType InstructionNodeType
+        Xml.NodeComment _ -> failWithUnexpectedNodeType CommentNodeType
+        where
+          failWithUnexpectedNodeType actualType =
+            ( Left (Error [AtOffsetLocation offset] (UnexpectedNodeTypeReason ElementNodeType actualType)),
+              (nodes, succ offset)
+            )
+      _ ->
+        ( Left (Error [AtOffsetLocation offset] NoNodesLeftReason),
+          ([], succ offset)
+        )
+
+-- |
+-- Consume the next node expecting it to be textual and parse its contents with \"attoparsec\".
+textNodeParsed :: Atto.Parser a -> Nodes a
+textNodeParsed parser =
   error "TODO"
 
 -- * ByName

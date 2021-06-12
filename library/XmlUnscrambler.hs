@@ -16,7 +16,8 @@ module XmlUnscrambler
     -- ** Nodes
     AstParser.Nodes,
     AstParser.elementNode,
-    AstParser.textNode,
+    AstParser.textNodeAsIs,
+    AstParser.textNodeParsed,
 
     -- ** ByName
     AstParser.ByName,
