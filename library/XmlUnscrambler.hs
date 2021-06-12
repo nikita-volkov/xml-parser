@@ -1,6 +1,7 @@
 module XmlUnscrambler
   ( -- * Execution
     parseByteString,
+    parseFile,
 
     -- * Parsers by context
 
@@ -36,6 +37,13 @@ import qualified XmlUnscrambler.XmlConduitWrapper as XmlConduitWrapper
 parseByteString :: AstParser.Element a -> ByteString -> Either Text a
 parseByteString astParser input =
   XmlConduitWrapper.parseByteString input >>= parseXmlConduitDocument astParser
+
+-- |
+-- Parse XML file.
+parseFile :: AstParser.Element a -> FilePath -> IO (Either Text a)
+parseFile astParser path =
+  fmap (>>= parseXmlConduitDocument astParser) $
+    XmlConduitWrapper.parseFile path
 
 parseXmlConduitDocument :: AstParser.Element a -> XmlConduit.Document -> Either Text a
 parseXmlConduitDocument astParser =
