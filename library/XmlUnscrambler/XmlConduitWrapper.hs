@@ -27,7 +27,7 @@ parseFile path =
 
 settings :: XmlConduit.ParseSettings
 settings =
-  def
+  XmlConduit.def
     { XmlConduit.psRetainNamespaces = True
     }
 
