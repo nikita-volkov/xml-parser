@@ -1,7 +1,7 @@
 cabal-version: 3.0
 name: xml-unscrambler
 version: 0.1
-synopsis: Parser of xml-types AST
+synopsis: XML parser with powerful error-reporting and simple API
 homepage: https://github.com/nikita-volkov/xml-unscrambler
 bug-reports: https://github.com/nikita-volkov/xml-unscrambler/issues
 author: Nikita Volkov <nikita.y.volkov@mail.ru>
