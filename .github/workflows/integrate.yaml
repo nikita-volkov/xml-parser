@@ -11,16 +11,16 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2.3.4
 
-      - uses: actions/setup-haskell@v1.1.4
+      - uses: haskell/actions/setup@v1.2.1
         name: Setup
         with:
           enable-stack: true
-          stack-version: 2.5.1
+          stack-version: 2.7.1
           stack-no-global: true
 
-      - uses: actions/cache@v2.1.4
+      - uses: actions/cache@v2.1.6
         name: Cache
         with:
           path: ~/.stack
