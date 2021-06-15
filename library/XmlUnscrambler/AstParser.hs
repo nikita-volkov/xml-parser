@@ -1,6 +1,7 @@
 module XmlUnscrambler.AstParser
   ( -- * Execution
     parseElement,
+    renderError,
     Error (..),
     Location (..),
     Reason (..),
@@ -29,6 +30,7 @@ module XmlUnscrambler.AstParser
 where
 
 import qualified Data.Attoparsec.Text as Atto
+import qualified Text.Builder as Tb
 import qualified Text.XML as Xml
 import qualified XmlUnscrambler.NameMap as NameMap
 import XmlUnscrambler.Prelude
@@ -37,6 +39,33 @@ import XmlUnscrambler.Prelude
 -- Parse an \"xml-conduit\" element AST.
 parseElement :: Element a -> Xml.Element -> Either Error a
 parseElement (Element run) = run
+
+renderError :: Error -> Text
+renderError =
+  Tb.run . errorAtPath
+  where
+    errorAtPath (Error a b) = "Error at path " <> path a <> ". " <> reason b
+    path a = "/" <> Tb.intercalate "/" (fmap location a)
+    reason = \case
+      AttoparsecFailedReason a -> Tb.text a
+      UnexpectedNodeTypeReason a b -> "Unexpected node type. Got " <> nodeType a <> ", but expected " <> nodeType b
+      NoNodesLeftReason -> "No nodes left"
+      NoneOfChildrenFoundByNameReason a b -> "None of following names found: " <> list name a <> ". Names available: " <> list name b
+    location = \case
+      ByNameLocation a b -> name (a, b)
+      AtOffsetLocation a -> Tb.decimal a
+      ChildrenLocation -> "children"
+      AttributesLocation -> "attributes"
+    list renderer = mappend "[" . flip mappend "]" . Tb.intercalate ", " . fmap renderer . sort
+    nodeType = \case
+      ElementNodeType -> "element"
+      InstructionNodeType -> "instruction"
+      ContentNodeType -> "content"
+      CommentNodeType -> "comment"
+    name (a, b) =
+      case a of
+        Just a -> Tb.text a <> ":" <> Tb.text b
+        Nothing -> Tb.text b
 
 -- |
 -- Parsing error.
@@ -58,7 +87,7 @@ data Reason
       NodeType
       -- ^ Expected.
   | NoNodesLeftReason
-  | NoneOfChildrenFoundByNameReason [(Maybe Text, Text)]
+  | NoneOfChildrenFoundByNameReason [(Maybe Text, Text)] [(Maybe Text, Text)]
 
 data NodeType
   = ElementNodeType
@@ -91,12 +120,14 @@ elementNameIs =
 childrenByName :: ByName Element a -> Element a
 childrenByName =
   \(ByName runByName) -> Element $ \(Xml.Element _ _ nodes) ->
-    case runByName (NameMap.fromNodes nodes) parse of
-      OkByNameResult _ res -> Right res
-      NotFoundByNameResult unfoundNames ->
-        Left (Error [] (NoneOfChildrenFoundByNameReason unfoundNames))
-      FailedDeeperByNameResult ns name err ->
-        Left (consLocationToError (ByNameLocation ns name) err)
+    let nameMap = NameMap.fromNodes nodes
+     in case runByName nameMap parse of
+          OkByNameResult _ res -> Right res
+          NotFoundByNameResult unfoundNames ->
+            let availNames = NameMap.extractNames nameMap
+             in Left (Error [] (NoneOfChildrenFoundByNameReason unfoundNames availNames))
+          FailedDeeperByNameResult ns name err ->
+            Left (consLocationToError (ByNameLocation ns name) err)
   where
     parse element (Element run) = run element
 

@@ -38,7 +38,15 @@ main =
                 Xu.childrenByName $ many $ Xu.byName Nothing "b" $ Xu.children $ Xu.textNodeAsIs
               result = Xu.parseByteString parser xml
 
-          return (result === Right bContents)
+          return (result === Right bContents),
+        testCase "Namespaces" $ do
+          let parser = Xu.childrenByName $ Xu.byName (Just "b") "c" $ Xu.children $ Xu.textNodeAsIs
+              result = Xu.parseByteString parser "<a><b:c>d</b:c></a>"
+          assertEqual "" (Right "d") result,
+        testCase "Error" $ do
+          let parser = Xu.childrenByName $ Xu.byName Nothing "c" $ Xu.children $ Xu.textNodeAsIs
+              result = Xu.parseByteString parser "<a><b>c</b><d/></a>"
+          assertEqual "" (Left "Error at path /. None of following names found: [c]. Names available: [b, d]") result
       ]
 
 documentByteString :: Xc.Document -> ByteString

@@ -48,8 +48,4 @@ parseFile astParser path =
 
 parseXmlConduitDocument :: AstParser.Element a -> XmlConduit.Document -> Either Text a
 parseXmlConduitDocument astParser =
-  first renderError . AstParser.parseElement astParser . XmlConduit.documentRoot
-  where
-    renderError :: AstParser.Error -> Text
-    renderError =
-      error "TODO"
+  first AstParser.renderError . AstParser.parseElement astParser . XmlConduit.documentRoot

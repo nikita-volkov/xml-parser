@@ -6,12 +6,13 @@ module XmlUnscrambler.NameMap
     empty,
     insert,
     fetch,
+    extractNames,
   )
 where
 
 import qualified Data.HashMap.Strict as HashMap
 import qualified Text.XML as Xml
-import XmlUnscrambler.Prelude hiding (empty, fromList, insert)
+import XmlUnscrambler.Prelude hiding (empty, fromList, insert, toList)
 import qualified XmlUnscrambler.TupleHashMap as TupleHashMap
 
 data NameMap a
@@ -37,7 +38,7 @@ fromReverseList :: [(Xml.Name, a)] -> NameMap a
 fromReverseList list =
   foldr step NameMap list TupleHashMap.empty HashMap.empty
   where
-    step (Xml.Name name ns _, contents) next !map1 !map2 =
+    step (Xml.Name name _ ns, contents) next !map1 !map2 =
       case ns of
         Just ns ->
           next (TupleHashMap.insertSemigroup ns name [contents] map1) map2
@@ -92,3 +93,8 @@ fetch ns name (NameMap map1 map2) =
         map2
         & getCompose
         & fmap (fmap (NameMap map1))
+
+extractNames :: NameMap a -> [(Maybe Text, Text)]
+extractNames (NameMap map1 map2) =
+  fmap (\(a, b, _) -> (Just a, b)) (TupleHashMap.toList map1)
+    <> fmap ((Nothing,) . fst) (HashMap.toList map2)

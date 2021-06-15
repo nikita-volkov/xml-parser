@@ -4,11 +4,12 @@ module XmlUnscrambler.TupleHashMap
     empty,
     insertSemigroup,
     alterF,
+    toList,
   )
 where
 
 import qualified Data.HashMap.Strict as HashMap
-import XmlUnscrambler.Prelude hiding (empty, fromList)
+import XmlUnscrambler.Prelude hiding (empty, fromList, toList)
 
 newtype TupleHashMap k1 k2 v = TupleHashMap (HashMap k1 (HashMap k2 v))
 
@@ -45,3 +46,10 @@ alterF fn k1 k2 (TupleHashMap map1) =
     k1
     map1
     & fmap TupleHashMap
+
+toList :: TupleHashMap k1 k2 b -> [(k1, k2, b)]
+toList (TupleHashMap map1) =
+  do
+    (k1, map2) <- HashMap.toList map1
+    (k2, v) <- HashMap.toList map2
+    return (k1, k2, v)
