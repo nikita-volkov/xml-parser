@@ -46,7 +46,11 @@ main =
         testCase "Error" $ do
           let parser = Xu.childrenByName $ Xu.byName Nothing "c" $ Xu.children $ Xu.textNode $ Xu.textContent
               result = Xu.parseByteString parser "<a><b>c</b><d/></a>"
-          assertEqual "" (Left "Error at path /. None of following names found: [c]. Names available: [b, d]") result
+          assertEqual "" (Left "Error at path /. None of following names found: [c]. Names available: [b, d]") result,
+        testCase "QName content" $ do
+          let input = "<root>abc:d</root>"
+              parser = Xu.children $ Xu.textNode $ Xu.qNameContent
+           in assertEqual "" (Right (Just "", "d")) (Xu.parseByteString parser input)
       ]
 
 documentByteString :: Xc.Document -> ByteString

@@ -63,6 +63,7 @@ renderError =
       UnexpectedNodeTypeReason a b -> "Unexpected node type. Got " <> nodeType a <> ", but expected " <> nodeType b
       NoNodesLeftReason -> "No nodes left"
       NoneOfChildrenFoundByNameReason a b -> "None of following names found: " <> list name a <> ". Names available: " <> list name b
+      ContentErrorReason a -> contentError a
     location = \case
       ByNameLocation a b -> name (a, b)
       AtOffsetLocation a -> Tb.decimal a
@@ -74,6 +75,9 @@ renderError =
       InstructionNodeType -> "instruction"
       ContentNodeType -> "content"
       CommentNodeType -> "comment"
+    contentError = \case
+      ParsingContentError a -> Tb.text a
+      NamespaceNotFoundContentError a -> "Namespace not found: " <> Tb.text a
     name (a, b) =
       case a of
         Just a -> Tb.text a <> ":" <> Tb.text b
