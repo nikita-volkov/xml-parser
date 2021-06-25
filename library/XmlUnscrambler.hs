@@ -53,4 +53,4 @@ parseFile astParser path =
 
 parseXmlConduitDocument :: AstParser.Element a -> XmlConduit.Document -> Either Text a
 parseXmlConduitDocument astParser =
-  first AstParser.renderError . AstParser.parseElement astParser . XmlConduit.documentRoot
+  first AstParser.renderElementError . AstParser.parseElement astParser . XmlConduit.documentRoot

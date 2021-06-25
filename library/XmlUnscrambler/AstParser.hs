@@ -1,11 +1,8 @@
 module XmlUnscrambler.AstParser
   ( -- * Execution
     parseElement,
-    renderError,
-    Error (..),
-    Location (..),
-    Reason (..),
-    ContentError (..),
+    renderElementError,
+    ElementError (..),
     NodeType (..),
 
     -- * Parsers by context
@@ -46,65 +43,97 @@ import qualified XmlUnscrambler.XmlSchemaAttoparsec as XmlSchemaAttoparsec
 
 -- |
 -- Parse an \"xml-conduit\" element AST.
-parseElement :: Element a -> Xml.Element -> Either Error a
+parseElement :: Element a -> Xml.Element -> Either ElementError a
 parseElement (Element run) element =
   run
     (NamespaceRegistry.interpretAttributes (Xml.elementAttributes element) NamespaceRegistry.new)
     element
 
-renderError :: Error -> Text
-renderError =
-  Tb.run . errorAtPath
+renderElementError :: ElementError -> Text
+renderElementError =
+  Tb.run . elementError []
   where
-    errorAtPath (Error a b) = "Error at path " <> path a <> ". " <> reason b
-    path a = "/" <> Tb.intercalate "/" (fmap location a)
-    reason = \case
-      AttoparsecFailedReason a -> Tb.text a
-      UnexpectedNodeTypeReason a b -> "Unexpected node type. Got " <> nodeType a <> ", but expected " <> nodeType b
-      NoNodesLeftReason -> "No nodes left"
-      NoneOfChildrenFoundByNameReason a b -> "None of following names found: " <> list name a <> ". Names available: " <> list name b
-      ContentErrorReason a -> contentError a
-    location = \case
-      ByNameLocation a b -> name (a, b)
-      AtOffsetLocation a -> Tb.decimal a
-      ChildrenLocation -> "children"
-      AttributesLocation -> "attributes"
-    list renderer = mappend "[" . flip mappend "]" . Tb.intercalate ", " . fmap renderer . sort
+    sortedList renderer =
+      mappend "[" . flip mappend "]" . Tb.intercalate ", " . fmap renderer . sort
+    name a b =
+      case a of
+        Just a -> Tb.text a <> ":" <> Tb.text b
+        Nothing -> Tb.text b
+    path a =
+      "/" <> Tb.intercalate "/" (reverse a)
+    elementError collectedPath = \case
+      NoneOfChildrenFoundByNameElementError a b ->
+        "At " <> path collectedPath <> ": "
+          <> "None of following child element names found: "
+          <> sortedList (uncurry name) a
+          <> ". Names available: "
+          <> sortedList (uncurry name) b
+      ChildByNameElementError a b c ->
+        elementError (name a b : collectedPath) c
+      ChildAtOffsetElementError a b ->
+        nodeError (Tb.decimal a : collectedPath) b
+    nodeError collectedPath = \case
+      UnexpectedNodeTypeNodeError a b ->
+        "Unexpected node type. Got " <> nodeType b <> ", but expected " <> nodeType a
+      NotAvailableNodeError ->
+        "No nodes left"
+      ElementNodeError a ->
+        elementError collectedPath a
+      TextNodeError a ->
+        contentError collectedPath a
     nodeType = \case
       ElementNodeType -> "element"
       InstructionNodeType -> "instruction"
       ContentNodeType -> "content"
       CommentNodeType -> "comment"
-    contentError = \case
-      ParsingContentError a -> Tb.text a
-      NamespaceNotFoundContentError a -> "Namespace not found: " <> Tb.text a
-    name (a, b) =
-      case a of
-        Just a -> Tb.text a <> ":" <> Tb.text b
-        Nothing -> Tb.text b
+    contentError collectedPath = \case
+      ParsingContentError a ->
+        "At " <> path collectedPath <> ": " <> Tb.text a
+      NamespaceNotFoundContentError a ->
+        "At " <> path collectedPath <> ": " <> "Namespace not found: " <> Tb.text a
 
--- |
--- Parsing error.
-data Error = Error [Location] Reason
+-- | Error in the context of an element.
+data ElementError
+  = AttributeByNameElementError
+      (Maybe Text)
+      Text
+      ContentError
+  | NoneOfAttributesFoundByNameElementError
+      [(Maybe Text, Text)]
+      -- ^ Not found.
+      [(Maybe Text, Text)]
+      -- ^ Out of.
+  | NoneOfChildrenFoundByNameElementError
+      [(Maybe Text, Text)]
+      -- ^ Not found.
+      [(Maybe Text, Text)]
+      -- ^ Out of.
+  | ChildByNameElementError
+      (Maybe Text)
+      -- ^ Namespace.
+      Text
+      -- ^ Name.
+      ElementError
+      -- ^ Reason. Not 'NodeError' because only element nodes can be looked up by name.
+  | ChildAtOffsetElementError
+      Int
+      -- ^ Offset.
+      NodeError
+      -- ^ Reason.
 
-data Location
-  = ByNameLocation (Maybe Text) Text
-  | AtOffsetLocation Int
-  | ChildrenLocation
-  | AttributesLocation
-
--- |
--- Reason of an error.
-data Reason
-  = AttoparsecFailedReason Text
-  | UnexpectedNodeTypeReason
-      NodeType
-      -- ^ Actual.
+data NodeError
+  = UnexpectedNodeTypeNodeError
       NodeType
       -- ^ Expected.
-  | NoNodesLeftReason
-  | NoneOfChildrenFoundByNameReason [(Maybe Text, Text)] [(Maybe Text, Text)]
-  | ContentErrorReason ContentError
+      NodeType
+      -- ^ Actual.
+  | NotAvailableNodeError
+  | ElementNodeError ElementError
+  | TextNodeError ContentError
+
+data ContentError
+  = ParsingContentError Text
+  | NamespaceNotFoundContentError Text
 
 data NodeType
   = ElementNodeType
@@ -115,10 +144,10 @@ data NodeType
 -- |
 -- Parse in the context of an element node.
 newtype Element a
-  = Element (NamespaceRegistry.NamespaceRegistry -> Xml.Element -> Either Error a)
+  = Element (NamespaceRegistry.NamespaceRegistry -> Xml.Element -> Either ElementError a)
   deriving
     (Functor, Applicative, Monad)
-    via (ReaderT (NamespaceRegistry.NamespaceRegistry) (ReaderT Xml.Element (Except Error)))
+    via (ReaderT (NamespaceRegistry.NamespaceRegistry) (ReaderT Xml.Element (Except ElementError)))
 
 -- |
 -- Parse namespace and name with the given function.
@@ -143,9 +172,9 @@ childrenByName =
           OkByNameResult _ res -> Right res
           NotFoundByNameResult unfoundNames ->
             let availNames = NameMap.extractNames nameMap
-             in Left (Error [] (NoneOfChildrenFoundByNameReason unfoundNames availNames))
+             in Left (NoneOfChildrenFoundByNameElementError unfoundNames availNames)
           FailedDeeperByNameResult ns name err ->
-            Left (consLocationToError (ByNameLocation ns name) err)
+            Left (ChildByNameElementError ns name err)
 
 -- |
 -- Look up the first attribute by name and parse it.
@@ -158,27 +187,27 @@ attributesByName =
 children :: Nodes a -> Element a
 children (Nodes runNodes) =
   Element $ \nsReg (Xml.Element _ _ nodes) ->
-    runNodes (NodeConsumerState.new nodes nsReg) & fst & first (consLocationToError ChildrenLocation)
+    case runNodes (NodeConsumerState.new nodes nsReg) of
+      (res, state) ->
+        first (ChildAtOffsetElementError (pred (NodeConsumerState.getOffset state))) res
 
 -- |
 -- Parser in the context of a sequence of nodes.
 newtype Nodes a
-  = Nodes (NodeConsumerState.NodeConsumerState -> (Either Error a, NodeConsumerState.NodeConsumerState))
+  = Nodes (NodeConsumerState.NodeConsumerState -> (Either NodeError a, NodeConsumerState.NodeConsumerState))
   deriving
     (Functor, Applicative, Monad)
-    via (ExceptT Error (State NodeConsumerState.NodeConsumerState))
+    via (ExceptT NodeError (State NodeConsumerState.NodeConsumerState))
 
 -- |
--- Consume the next node expecting it to be element.
+-- Consume the next node expecting it to be element and parse its contents.
 elementNode :: Element a -> Nodes a
 elementNode (Element runElement) =
   Nodes $ \x ->
     case NodeConsumerState.fetchNode x of
       Just (node, x) -> case node of
         Xml.NodeElement element ->
-          ( first
-              (consLocationToError (AtOffsetLocation (NodeConsumerState.getOffset x)))
-              (runElement (NodeConsumerState.getNamespaceRegistry x) element),
+          ( first ElementNodeError (runElement (NodeConsumerState.getNamespaceRegistry x) element),
             (NodeConsumerState.bumpOffset x)
           )
         Xml.NodeInstruction _ -> failWithUnexpectedNodeType InstructionNodeType
@@ -186,16 +215,14 @@ elementNode (Element runElement) =
         Xml.NodeComment _ -> failWithUnexpectedNodeType CommentNodeType
         where
           failWithUnexpectedNodeType actualType =
-            ( Left (Error [AtOffsetLocation (NodeConsumerState.getOffset x)] (UnexpectedNodeTypeReason ElementNodeType actualType)),
+            ( Left (UnexpectedNodeTypeNodeError ElementNodeType actualType),
               (NodeConsumerState.bumpOffset x)
             )
       _ ->
-        ( Left (Error [AtOffsetLocation (NodeConsumerState.getOffset x)] NoNodesLeftReason),
-          (NodeConsumerState.bumpOffset x)
-        )
+        (Left NotAvailableNodeError, (NodeConsumerState.bumpOffset x))
 
 -- |
--- Consume the next node expecting it to be textual and parse its contents with \"attoparsec\".
+-- Consume the next node expecting it to be textual and parse its contents.
 textNode :: Content content -> Nodes content
 textNode (Content parseContent) =
   Nodes $ \x ->
@@ -204,34 +231,17 @@ textNode (Content parseContent) =
         Xml.NodeContent content ->
           case parseContent (\ns -> NodeConsumerState.lookupNamespace ns x) content of
             Right parsedContent -> (Right parsedContent, NodeConsumerState.bumpOffset x)
-            Left contentError ->
-              ( Left
-                  ( Error
-                      [AtOffsetLocation (NodeConsumerState.getOffset x)]
-                      (ContentErrorReason contentError)
-                  ),
-                x
-              )
+            Left contentError -> (Left (TextNodeError contentError), x)
         Xml.NodeElement _ -> failWithUnexpectedNodeType ElementNodeType
         Xml.NodeInstruction _ -> failWithUnexpectedNodeType InstructionNodeType
         Xml.NodeComment _ -> failWithUnexpectedNodeType CommentNodeType
         where
           failWithUnexpectedNodeType actualType =
-            ( Left
-                ( Error
-                    [AtOffsetLocation (NodeConsumerState.getOffset x)]
-                    (UnexpectedNodeTypeReason ElementNodeType actualType)
-                ),
+            ( Left (UnexpectedNodeTypeNodeError ContentNodeType actualType),
               (NodeConsumerState.bumpOffset x)
             )
       _ ->
-        ( Left
-            ( Error
-                [AtOffsetLocation (NodeConsumerState.getOffset x)]
-                NoNodesLeftReason
-            ),
-          (NodeConsumerState.bumpOffset x)
-        )
+        (Left NotAvailableNodeError, (NodeConsumerState.bumpOffset x))
 
 -- * Content
 
@@ -242,10 +252,6 @@ newtype Content content
   = -- | Parser in the context of an xml namespace URI by alias lookup function.
     Content ((Text -> Maybe Text) -> Text -> Either ContentError content)
   deriving (Functor)
-
-data ContentError
-  = ParsingContentError Text
-  | NamespaceNotFoundContentError Text
 
 -- |
 -- Return the content as it is.
@@ -283,9 +289,9 @@ qNameContent =
 
 -- * ByName
 
-data ByNameResult content a
+data ByNameResult deeperError content a
   = NotFoundByNameResult [(Maybe Text, Text)]
-  | FailedDeeperByNameResult (Maybe Text) Text Error
+  | FailedDeeperByNameResult (Maybe Text) Text deeperError
   | OkByNameResult (NameMap.NameMap content) a
   deriving (Functor)
 
@@ -301,10 +307,10 @@ data ByNameResult content a
 -- Monad and Applicative sequentially fetch contents by matching names.
 newtype ByName parser a
   = ByName
-      ( forall content.
+      ( forall content deeperError.
         NameMap.NameMap content ->
-        (content -> forall x. parser x -> Either Error x) ->
-        ByNameResult content a
+        (content -> forall x. parser x -> Either deeperError x) ->
+        ByNameResult deeperError content a
       )
 
 instance Functor (ByName parser) where
@@ -353,8 +359,3 @@ byName ns name parser =
         Right a -> OkByNameResult map a
         Left err -> FailedDeeperByNameResult ns name err
       Nothing -> NotFoundByNameResult [(ns, name)]
-
--- * Utils
-
-consLocationToError :: Location -> Error -> Error
-consLocationToError loc (Error path reason) = Error (loc : path) reason
