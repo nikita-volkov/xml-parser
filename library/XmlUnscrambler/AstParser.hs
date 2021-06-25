@@ -5,6 +5,7 @@ module XmlUnscrambler.AstParser
     Error (..),
     Location (..),
     Reason (..),
+    ContentError (..),
     NodeType (..),
 
     -- * Parsers by context
@@ -17,11 +18,16 @@ module XmlUnscrambler.AstParser
     childrenByName,
     attributesByName,
 
+    -- ** Content
+    Content,
+    textContent,
+    attoparsedContent,
+    qNameContent,
+
     -- ** Nodes
     Nodes,
     elementNode,
-    textNodeAsIs,
-    textNodeParsed,
+    textNode,
 
     -- ** ByName
     ByName,
@@ -29,16 +35,22 @@ module XmlUnscrambler.AstParser
   )
 where
 
-import qualified Data.Attoparsec.Text as Atto
+import qualified Data.Attoparsec.Text as Attoparsec
 import qualified Text.Builder as Tb
 import qualified Text.XML as Xml
 import qualified XmlUnscrambler.NameMap as NameMap
+import qualified XmlUnscrambler.NamespaceRegistry as NamespaceRegistry
+import qualified XmlUnscrambler.NodeConsumerState as NodeConsumerState
 import XmlUnscrambler.Prelude
+import qualified XmlUnscrambler.XmlSchemaAttoparsec as XmlSchemaAttoparsec
 
 -- |
 -- Parse an \"xml-conduit\" element AST.
 parseElement :: Element a -> Xml.Element -> Either Error a
-parseElement (Element run) = run
+parseElement (Element run) element =
+  run
+    (NamespaceRegistry.interpretAttributes (Xml.elementAttributes element) NamespaceRegistry.new)
+    element
 
 renderError :: Error -> Text
 renderError =
@@ -88,6 +100,7 @@ data Reason
       -- ^ Expected.
   | NoNodesLeftReason
   | NoneOfChildrenFoundByNameReason [(Maybe Text, Text)] [(Maybe Text, Text)]
+  | ContentErrorReason ContentError
 
 data NodeType
   = ElementNodeType
@@ -98,10 +111,10 @@ data NodeType
 -- |
 -- Parse in the context of an element node.
 newtype Element a
-  = Element (Xml.Element -> Either Error a)
+  = Element (NamespaceRegistry.NamespaceRegistry -> Xml.Element -> Either Error a)
   deriving
     (Functor, Applicative, Monad)
-    via (ReaderT Xml.Element (Except Error))
+    via (ReaderT (NamespaceRegistry.NamespaceRegistry) (ReaderT Xml.Element (Except Error)))
 
 -- |
 -- Parse namespace and name with the given function.
@@ -119,21 +132,20 @@ elementNameIs =
 -- Look up elements by name and parse them.
 childrenByName :: ByName Element a -> Element a
 childrenByName =
-  \(ByName runByName) -> Element $ \(Xml.Element _ _ nodes) ->
+  \(ByName runByName) -> Element $ \nsReg (Xml.Element _ attributes nodes) ->
     let nameMap = NameMap.fromNodes nodes
-     in case runByName nameMap parse of
+        newNsReg = NamespaceRegistry.interpretAttributes attributes nsReg
+     in case runByName nameMap (\element (Element run) -> run newNsReg element) of
           OkByNameResult _ res -> Right res
           NotFoundByNameResult unfoundNames ->
             let availNames = NameMap.extractNames nameMap
              in Left (Error [] (NoneOfChildrenFoundByNameReason unfoundNames availNames))
           FailedDeeperByNameResult ns name err ->
             Left (consLocationToError (ByNameLocation ns name) err)
-  where
-    parse element (Element run) = run element
 
 -- |
 -- Look up the first attribute by name and parse it.
-attributesByName :: ByName Atto.Parser a -> Element a
+attributesByName :: ByName Content a -> Element a
 attributesByName =
   error "TODO"
 
@@ -141,70 +153,129 @@ attributesByName =
 -- Children sequence by order.
 children :: Nodes a -> Element a
 children (Nodes runNodes) =
-  Element $ \(Xml.Element _ _ nodes) ->
-    runNodes (nodes, 0) & fst & first (consLocationToError ChildrenLocation)
+  Element $ \nsReg (Xml.Element _ _ nodes) ->
+    runNodes (NodeConsumerState.new nodes nsReg) & fst & first (consLocationToError ChildrenLocation)
 
 -- |
 -- Parser in the context of a sequence of nodes.
 newtype Nodes a
-  = Nodes (([Xml.Node], Int) -> (Either Error a, ([Xml.Node], Int)))
+  = Nodes (NodeConsumerState.NodeConsumerState -> (Either Error a, NodeConsumerState.NodeConsumerState))
   deriving
     (Functor, Applicative, Monad)
-    via (ExceptT Error (State ([Xml.Node], Int)))
+    via (ExceptT Error (State NodeConsumerState.NodeConsumerState))
 
 -- |
 -- Consume the next node expecting it to be element.
 elementNode :: Element a -> Nodes a
 elementNode (Element runElement) =
-  Nodes $ \(nodes, offset) ->
-    case nodes of
-      node : nodes -> case node of
+  Nodes $ \x ->
+    case NodeConsumerState.fetchNode x of
+      Just (node, x) -> case node of
         Xml.NodeElement element ->
           ( first
-              (consLocationToError (AtOffsetLocation offset))
-              (runElement element),
-            (nodes, succ offset)
+              (consLocationToError (AtOffsetLocation (NodeConsumerState.getOffset x)))
+              (runElement (NodeConsumerState.getNamespaceRegistry x) element),
+            (NodeConsumerState.bumpOffset x)
           )
         Xml.NodeInstruction _ -> failWithUnexpectedNodeType InstructionNodeType
         Xml.NodeContent _ -> failWithUnexpectedNodeType ContentNodeType
         Xml.NodeComment _ -> failWithUnexpectedNodeType CommentNodeType
         where
           failWithUnexpectedNodeType actualType =
-            ( Left (Error [AtOffsetLocation offset] (UnexpectedNodeTypeReason ElementNodeType actualType)),
-              (nodes, succ offset)
+            ( Left (Error [AtOffsetLocation (NodeConsumerState.getOffset x)] (UnexpectedNodeTypeReason ElementNodeType actualType)),
+              (NodeConsumerState.bumpOffset x)
             )
       _ ->
-        ( Left (Error [AtOffsetLocation offset] NoNodesLeftReason),
-          ([], succ offset)
+        ( Left (Error [AtOffsetLocation (NodeConsumerState.getOffset x)] NoNodesLeftReason),
+          (NodeConsumerState.bumpOffset x)
         )
 
 -- |
 -- Consume the next node expecting it to be textual and parse its contents with \"attoparsec\".
-textNodeAsIs :: Nodes Text
-textNodeAsIs =
-  Nodes $ \(nodes, offset) ->
-    case nodes of
-      node : nodes -> case node of
+textNode :: Content content -> Nodes content
+textNode (Content parseContent) =
+  Nodes $ \x ->
+    case NodeConsumerState.fetchNode x of
+      Just (node, x) -> case node of
         Xml.NodeContent content ->
-          (Right content, (nodes, succ offset))
+          case parseContent (\ns -> NodeConsumerState.lookupNamespace ns x) content of
+            Right parsedContent -> (Right parsedContent, NodeConsumerState.bumpOffset x)
+            Left contentError ->
+              ( Left
+                  ( Error
+                      [AtOffsetLocation (NodeConsumerState.getOffset x)]
+                      (ContentErrorReason contentError)
+                  ),
+                x
+              )
         Xml.NodeElement _ -> failWithUnexpectedNodeType ElementNodeType
         Xml.NodeInstruction _ -> failWithUnexpectedNodeType InstructionNodeType
         Xml.NodeComment _ -> failWithUnexpectedNodeType CommentNodeType
         where
           failWithUnexpectedNodeType actualType =
-            ( Left (Error [AtOffsetLocation offset] (UnexpectedNodeTypeReason ElementNodeType actualType)),
-              (nodes, succ offset)
+            ( Left
+                ( Error
+                    [AtOffsetLocation (NodeConsumerState.getOffset x)]
+                    (UnexpectedNodeTypeReason ElementNodeType actualType)
+                ),
+              (NodeConsumerState.bumpOffset x)
             )
       _ ->
-        ( Left (Error [AtOffsetLocation offset] NoNodesLeftReason),
-          ([], succ offset)
+        ( Left
+            ( Error
+                [AtOffsetLocation (NodeConsumerState.getOffset x)]
+                NoNodesLeftReason
+            ),
+          (NodeConsumerState.bumpOffset x)
         )
 
+-- * Content
+
 -- |
--- Consume the next node expecting it to be textual and parse its contents with \"attoparsec\".
-textNodeParsed :: Atto.Parser a -> Nodes a
-textNodeParsed parser =
-  error "TODO"
+-- Parser in the context of decoded textual content,
+-- which can be the value of an attribute or a textual node.
+newtype Content content
+  = -- | Parser in the context of an xml namespace URI by alias lookup function.
+    Content ((Text -> Maybe Text) -> Text -> Either ContentError content)
+  deriving (Functor)
+
+data ContentError
+  = ParsingContentError Text
+  | NamespaceNotFoundContentError Text
+
+-- |
+-- Return the content as it is.
+textContent :: Content Text
+textContent =
+  Content (const pure)
+
+-- |
+-- Parse the content using the \"attoparsec\" parser.
+attoparsedContent :: Attoparsec.Parser a -> Content a
+attoparsedContent parser =
+  Content (const (first (ParsingContentError . fromString) . Attoparsec.parseOnly parser))
+
+-- |
+-- Parse the content as XML Schema QName,
+-- automatically resolving the namespace as URI and failing,
+-- if none is associated.
+--
+-- Produces a URI associated with the namespace and name.
+-- If the content does not contain colon, produces an unnamespaced name.
+--
+-- Refs:
+--
+-- - https://www.w3.org/2001/tag/doc/qnameids.html#sec-qnames-xml
+-- - https://en.wikipedia.org/wiki/QName
+qNameContent :: Content (Maybe Text, Text)
+qNameContent =
+  Content $ \lookup content -> case Attoparsec.parseOnly XmlSchemaAttoparsec.qName content of
+    Right (ns, name) -> case ns of
+      Just ns -> case lookup ns of
+        Just uri -> Right (Just uri, name)
+        Nothing -> Left (NamespaceNotFoundContentError ns)
+      Nothing -> Right (Nothing, name)
+    Left err -> Left (ParsingContentError (fromString err))
 
 -- * ByName
 

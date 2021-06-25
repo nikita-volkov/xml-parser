@@ -26,13 +26,17 @@ library
   other-modules:
     XmlUnscrambler.AstParser
     XmlUnscrambler.NameMap
+    XmlUnscrambler.NamespaceRegistry
+    XmlUnscrambler.NodeConsumerState
     XmlUnscrambler.TupleHashMap
     XmlUnscrambler.Prelude
     XmlUnscrambler.XmlConduitWrapper
+    XmlUnscrambler.XmlSchemaAttoparsec
   build-depends:
     attoparsec >=0.13 && <0.15,
     base >=4.11 && <5,
     bytestring >=0.10 && <0.12,
+    containers ^>=0.6,
     hashable >=1.2 && <2,
     text >=1.2.4 && <2,
     text-builder >=0.6.6.2 && <0.7,

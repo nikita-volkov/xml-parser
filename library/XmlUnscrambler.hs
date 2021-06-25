@@ -13,11 +13,16 @@ module XmlUnscrambler
     AstParser.childrenByName,
     AstParser.attributesByName,
 
+    -- ** Content
+    AstParser.Content,
+    AstParser.textContent,
+    AstParser.attoparsedContent,
+    AstParser.qNameContent,
+
     -- ** Nodes
     AstParser.Nodes,
     AstParser.elementNode,
-    AstParser.textNodeAsIs,
-    AstParser.textNodeParsed,
+    AstParser.textNode,
 
     -- ** ByName
     AstParser.ByName,
