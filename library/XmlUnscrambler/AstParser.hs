@@ -51,7 +51,11 @@ parseElement (Element run) element =
 
 renderElementError :: ElementError -> Text
 renderElementError =
-  Tb.run . elementError []
+  Tb.run . (\(a, b) -> "/" <> Tb.intercalate "/" (reverse a) <> ": " <> b) . simplifyElementError
+
+simplifyElementError :: ElementError -> ([Tb.Builder], Tb.Builder)
+simplifyElementError =
+  elementError []
   where
     sortedList renderer =
       mappend "[" . flip mappend "]" . Tb.intercalate ", " . fmap renderer . sort
@@ -59,40 +63,44 @@ renderElementError =
       case a of
         Just a -> Tb.text a <> ":" <> Tb.text b
         Nothing -> Tb.text b
-    path a =
-      "/" <> Tb.intercalate "/" (reverse a)
     elementError collectedPath = \case
       NoneOfChildrenFoundByNameElementError a b ->
-        "At " <> path collectedPath <> ": "
-          <> "None of following child element names found: "
-          <> sortedList (uncurry name) a
-          <> ". Names available: "
-          <> sortedList (uncurry name) b
+        ( collectedPath,
+          "None of following child element names found: "
+            <> sortedList (uncurry name) a
+            <> ". Names available: "
+            <> sortedList (uncurry name) b
+        )
       ChildByNameElementError a b c ->
         elementError (name a b : collectedPath) c
       ChildAtOffsetElementError a b ->
         nodeError (Tb.decimal a : collectedPath) b
     nodeError collectedPath = \case
       UnexpectedNodeTypeNodeError a b ->
-        "Unexpected node type. Got " <> nodeType b <> ", but expected " <> nodeType a
+        ( collectedPath,
+          "Unexpected node type. Got " <> nodeType b <> ", but expected " <> nodeType a
+        )
       NotAvailableNodeError ->
-        "No nodes left"
+        (collectedPath, "No nodes left")
       ElementNodeError a ->
         elementError collectedPath a
       TextNodeError a ->
-        contentError collectedPath a
+        (collectedPath, contentError a)
     nodeType = \case
       ElementNodeType -> "element"
       InstructionNodeType -> "instruction"
       ContentNodeType -> "content"
       CommentNodeType -> "comment"
-    contentError collectedPath = \case
+    contentError = \case
       ParsingContentError a ->
-        "At " <> path collectedPath <> ": " <> Tb.text a
+        Tb.text a
       NamespaceNotFoundContentError a ->
-        "At " <> path collectedPath <> ": " <> "Namespace not found: " <> Tb.text a
+        "Namespace not found: " <> Tb.text a
 
--- | Error in the context of an element.
+-- |
+-- Error in the context of an element.
+--
+-- It has a tree structure specifying the context of containing operations.
 data ElementError
   = AttributeByNameElementError
       (Maybe Text)
