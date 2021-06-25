@@ -12,6 +12,7 @@ where
 
 import qualified Data.HashMap.Strict as HashMap
 import qualified Text.XML as Xml
+import qualified XmlUnscrambler.NamespaceRegistry as NamespaceRegistry
 import XmlUnscrambler.Prelude hiding (empty, fromList, insert, toList)
 import qualified XmlUnscrambler.TupleHashMap as TupleHashMap
 
@@ -22,28 +23,29 @@ data NameMap a
       (HashMap Text [a])
       -- ^ Unnamespaced
 
-fromNodes :: [Xml.Node] -> NameMap Xml.Element
-fromNodes =
-  fromReverseList . foldl' appendIfElement []
+fromNodes :: NamespaceRegistry.NamespaceRegistry -> [Xml.Node] -> NameMap Xml.Element
+fromNodes nreg =
+  fromReverseList nreg . foldl' appendIfElement []
   where
     appendIfElement list = \case
       Xml.NodeElement element -> (Xml.elementName element, element) : list
       _ -> list
 
-fromList :: [(Xml.Name, a)] -> NameMap a
-fromList =
-  fromReverseList . reverse
+fromList :: NamespaceRegistry.NamespaceRegistry -> [(Xml.Name, a)] -> NameMap a
+fromList nreg =
+  fromReverseList nreg . reverse
 
-fromReverseList :: [(Xml.Name, a)] -> NameMap a
-fromReverseList list =
+fromReverseList :: NamespaceRegistry.NamespaceRegistry -> [(Xml.Name, a)] -> NameMap a
+fromReverseList nreg list =
   foldr step NameMap list TupleHashMap.empty HashMap.empty
   where
-    step (Xml.Name name _ ns, contents) next !map1 !map2 =
-      case ns of
-        Just ns ->
-          next (TupleHashMap.insertSemigroup ns name [contents] map1) map2
-        Nothing ->
-          next map1 (HashMap.insertWith (++) name [contents] map2)
+    step (name, contents) next !map1 !map2 =
+      case NamespaceRegistry.resolveElementName name nreg of
+        Nothing -> next map1 map2
+        Just (ns, name) ->
+          case ns of
+            Just ns -> next (TupleHashMap.insertSemigroup ns name [contents] map1) map2
+            Nothing -> next map1 (HashMap.insertWith (++) name [contents] map2)
 
 empty :: NameMap a
 empty =

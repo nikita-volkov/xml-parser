@@ -173,10 +173,10 @@ elementNameIs =
 -- Look up elements by name and parse them.
 childrenByName :: ByName Element a -> Element a
 childrenByName =
-  \(ByName runByName) -> Element $ \nsReg (Xml.Element _ attributes nodes) ->
-    let nameMap = NameMap.fromNodes nodes
-        newNsReg = NamespaceRegistry.interpretAttributes attributes nsReg
-     in case runByName nameMap (\element (Element run) -> run newNsReg element) of
+  \(ByName runByName) -> Element $ \nreg (Xml.Element _ attributes nodes) ->
+    let nameMap = NameMap.fromNodes nreg nodes
+        newNreg = NamespaceRegistry.interpretAttributes attributes nreg
+     in case runByName nameMap (\element (Element run) -> run newNreg element) of
           OkByNameResult _ res -> Right res
           NotFoundByNameResult unfoundNames ->
             let availNames = NameMap.extractNames nameMap
@@ -194,8 +194,8 @@ attributesByName =
 -- Children sequence by order.
 children :: Nodes a -> Element a
 children (Nodes runNodes) =
-  Element $ \nsReg (Xml.Element _ _ nodes) ->
-    case runNodes (NodeConsumerState.new nodes nsReg) of
+  Element $ \nreg (Xml.Element _ _ nodes) ->
+    case runNodes (NodeConsumerState.new nodes nreg) of
       (res, state) ->
         first (ChildAtOffsetElementError (pred (NodeConsumerState.getOffset state))) res
 

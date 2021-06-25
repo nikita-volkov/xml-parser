@@ -40,8 +40,8 @@ main =
 
           return (result === Right bContents),
         testCase "Namespaces" $ do
-          let parser = Xu.childrenByName $ Xu.byName (Just "b") "c" $ Xu.children $ Xu.textNode $ Xu.textContent
-              result = Xu.parseByteString parser "<a><b:c>d</b:c></a>"
+          let parser = Xu.childrenByName $ Xu.byName (Just "B") "c" $ Xu.children $ Xu.textNode $ Xu.textContent
+              result = Xu.parseByteString parser "<a xmlns:b=\"B\"><b:c>d</b:c></a>"
           assertEqual "" (Right "d") result,
         testCase "Error" $ do
           let parser = Xu.childrenByName $ Xu.byName Nothing "c" $ Xu.children $ Xu.textNode $ Xu.textContent
