@@ -48,9 +48,9 @@ main =
               result = Xu.parseByteString parser "<a><b>c</b><d/></a>"
           assertEqual "" (Left "/: None of following child element names found: [c]. Names available: [b, d]") result,
         testCase "QName content" $ do
-          let input = "<root>abc:d</root>"
+          let input = "<root xmlns:abc='abc-uri'>abc:d</root>"
               parser = Xu.children $ Xu.textNode $ Xu.qNameContent
-           in assertEqual "" (Right (Just "", "d")) (Xu.parseByteString parser input)
+           in assertEqual "" (Right (Just "abc-uri", "d")) (Xu.parseByteString parser input)
       ]
 
 documentByteString :: Xc.Document -> ByteString
