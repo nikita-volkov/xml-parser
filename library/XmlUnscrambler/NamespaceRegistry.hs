@@ -35,14 +35,22 @@ resolveAttributeName :: Xml.Name -> NamespaceRegistry -> Maybe (Maybe Text, Text
 resolveAttributeName = resolveName False
 
 resolveName :: Bool -> Xml.Name -> NamespaceRegistry -> Maybe (Maybe Text, Text)
-resolveName useDef name (NamespaceRegistry map def) =
-  case parseQName name of
-    Just (ns, name) -> case ns of
+resolveName useDef (Xml.Name localName uri ns) (NamespaceRegistry map def) =
+  case uri of
+    Just uri -> Just (Just uri, localName)
+    Nothing -> case ns of
       Just ns -> case HashMap.lookup ns map of
-        Just uri -> Just (Just uri, name)
+        Just uri -> Just (Just uri, localName)
         Nothing -> Nothing
-      Nothing -> Just (if useDef then def else Nothing, name)
-    Nothing -> Nothing
+      Nothing ->
+        case Attoparsec.parseOnly XmlSchemaAttoparsec.qName localName of
+          Right (ns, localName) -> case ns of
+            Just ns -> case HashMap.lookup ns map of
+              Just uri -> Just (Just uri, localName)
+              Nothing -> Nothing
+            Nothing ->
+              Just (if useDef then def else Nothing, localName)
+          _ -> Nothing
 
 insert :: Text -> Text -> NamespaceRegistry -> NamespaceRegistry
 insert alias uri (NamespaceRegistry map def) =
@@ -55,10 +63,14 @@ setDefault =
 -- |
 -- Extend the registry by reading in the value if this is an \"xmlns\" attribute.
 interpretAttribute :: Xml.Name -> Text -> NamespaceRegistry -> NamespaceRegistry
-interpretAttribute name uri =
-  case parseQName name of
-    Just (Just "xmlns", name) -> insert name uri
-    Just (Nothing, "xmlns") -> setDefault uri
+interpretAttribute (Xml.Name localName namespace prefix) uri =
+  case namespace of
+    Nothing -> case prefix of
+      Nothing -> case Attoparsec.parseOnly XmlSchemaAttoparsec.qName localName of
+        Right (Just "xmlns", name) -> insert name uri
+        Right (Nothing, "xmlns") -> setDefault uri
+        _ -> id
+      _ -> id
     _ -> id
 
 -- |
@@ -68,15 +80,3 @@ interpretAttribute name uri =
 interpretAttributes :: Map Xml.Name Text -> NamespaceRegistry -> NamespaceRegistry
 interpretAttributes attributes x =
   Map.foldlWithKey' (\x name value -> interpretAttribute name value x) x attributes
-
--- * Utils
-
-parseQName :: Xml.Name -> Maybe (Maybe Text, Text)
-parseQName (Xml.Name localName namespace prefix) =
-  case namespace of
-    Nothing -> case prefix of
-      Nothing -> case Attoparsec.parseOnly XmlSchemaAttoparsec.qName localName of
-        Right qName -> Just qName
-        _ -> Nothing
-      _ -> Nothing
-    _ -> Nothing
