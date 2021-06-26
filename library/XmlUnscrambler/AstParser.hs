@@ -195,17 +195,16 @@ attributesByName =
 children :: Nodes a -> Element a
 children (Nodes runNodes) =
   Element $ \nreg (Xml.Element _ _ nodes) ->
-    case runNodes (NodeConsumerState.new nodes nreg) of
-      (res, state) ->
-        first (ChildAtOffsetElementError (pred (NodeConsumerState.getOffset state))) res
+    runNodes (NodeConsumerState.new nodes nreg)
+      & second fst
 
 -- |
 -- Parser in the context of a sequence of nodes.
 newtype Nodes a
-  = Nodes (NodeConsumerState.NodeConsumerState -> (Either NodeError a, NodeConsumerState.NodeConsumerState))
+  = Nodes (NodeConsumerState.NodeConsumerState -> Either ElementError (a, NodeConsumerState.NodeConsumerState))
   deriving
     (Functor, Applicative, Monad)
-    via (ExceptT NodeError (State NodeConsumerState.NodeConsumerState))
+    via (StateT NodeConsumerState.NodeConsumerState (Either ElementError))
 
 -- |
 -- Consume the next node expecting it to be element and parse its contents.
@@ -215,19 +214,21 @@ elementNode (Element runElement) =
     case NodeConsumerState.fetchNode x of
       Just (node, x) -> case node of
         Xml.NodeElement element ->
-          ( first ElementNodeError (runElement (NodeConsumerState.getNamespaceRegistry x) element),
-            (NodeConsumerState.bumpOffset x)
-          )
+          bimap
+            (ChildAtOffsetElementError (NodeConsumerState.getOffset x) . ElementNodeError)
+            (,NodeConsumerState.bumpOffset x)
+            (runElement (NodeConsumerState.getNamespaceRegistry x) element)
         Xml.NodeInstruction _ -> failWithUnexpectedNodeType InstructionNodeType
         Xml.NodeContent _ -> failWithUnexpectedNodeType ContentNodeType
         Xml.NodeComment _ -> failWithUnexpectedNodeType CommentNodeType
         where
           failWithUnexpectedNodeType actualType =
-            ( Left (UnexpectedNodeTypeNodeError ElementNodeType actualType),
-              (NodeConsumerState.bumpOffset x)
-            )
-      _ ->
-        (Left NotAvailableNodeError, (NodeConsumerState.bumpOffset x))
+            Left
+              ( ChildAtOffsetElementError
+                  (NodeConsumerState.getOffset x)
+                  (UnexpectedNodeTypeNodeError ElementNodeType actualType)
+              )
+      _ -> Left (ChildAtOffsetElementError (NodeConsumerState.getOffset x) NotAvailableNodeError)
 
 -- |
 -- Consume the next node expecting it to be textual and parse its contents.
@@ -238,18 +239,25 @@ textNode (Content parseContent) =
       Just (node, x) -> case node of
         Xml.NodeContent content ->
           case parseContent (\ns -> NodeConsumerState.lookupNamespace ns x) content of
-            Right parsedContent -> (Right parsedContent, NodeConsumerState.bumpOffset x)
-            Left contentError -> (Left (TextNodeError contentError), x)
+            Right parsedContent ->
+              Right (parsedContent, NodeConsumerState.bumpOffset x)
+            Left contentError ->
+              Left
+                ( ChildAtOffsetElementError
+                    (NodeConsumerState.getOffset x)
+                    (TextNodeError contentError)
+                )
         Xml.NodeElement _ -> failWithUnexpectedNodeType ElementNodeType
         Xml.NodeInstruction _ -> failWithUnexpectedNodeType InstructionNodeType
         Xml.NodeComment _ -> failWithUnexpectedNodeType CommentNodeType
         where
           failWithUnexpectedNodeType actualType =
-            ( Left (UnexpectedNodeTypeNodeError ContentNodeType actualType),
-              (NodeConsumerState.bumpOffset x)
-            )
-      _ ->
-        (Left NotAvailableNodeError, (NodeConsumerState.bumpOffset x))
+            Left
+              ( ChildAtOffsetElementError
+                  (NodeConsumerState.getOffset x)
+                  (UnexpectedNodeTypeNodeError ContentNodeType actualType)
+              )
+      _ -> Left (ChildAtOffsetElementError (NodeConsumerState.getOffset x) NotAvailableNodeError)
 
 -- * Content
 
