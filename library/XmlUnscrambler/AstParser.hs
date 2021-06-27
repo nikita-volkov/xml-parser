@@ -28,7 +28,7 @@ module XmlUnscrambler.AstParser
     -- ** Content
     Content,
     textContent,
-    enumContent,
+    mappedContent,
     attoparsedContent,
     qNameContent,
   )
@@ -286,8 +286,8 @@ textContent =
 
 -- |
 -- Map the content to a type if it's valid.
-enumContent :: (Text -> Maybe a) -> Content a
-enumContent mapper =
+mappedContent :: (Text -> Maybe a) -> Content a
+mappedContent mapper =
   Content (const (\x -> maybe (Left (UnexpectedValueContentError x)) Right (mapper x)))
 
 -- |
