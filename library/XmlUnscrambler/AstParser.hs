@@ -28,6 +28,7 @@ module XmlUnscrambler.AstParser
     -- ** Content
     Content,
     textContent,
+    enumContent,
     attoparsedContent,
     qNameContent,
   )
@@ -143,6 +144,7 @@ data NodeError
 data ContentError
   = ParsingContentError Text
   | NamespaceNotFoundContentError Text
+  | UnexpectedValueContentError Text
 
 data NodeType
   = ElementNodeType
@@ -281,6 +283,12 @@ newtype Content content
 textContent :: Content Text
 textContent =
   Content (const pure)
+
+-- |
+-- Map the content to a type if it's valid.
+enumContent :: (Text -> Maybe a) -> Content a
+enumContent mapper =
+  Content (const (\x -> maybe (Left (UnexpectedValueContentError x)) Right (mapper x)))
 
 -- |
 -- Parse the content using the \"attoparsec\" parser.
