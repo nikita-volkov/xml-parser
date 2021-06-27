@@ -1,8 +1,7 @@
 module XmlUnscrambler.NameMap
   ( NameMap,
     fromNodes,
-    fromList,
-    fromReverseList,
+    fromAttributes,
     empty,
     insert,
     fetch,
@@ -11,6 +10,7 @@ module XmlUnscrambler.NameMap
 where
 
 import qualified Data.HashMap.Strict as HashMap
+import qualified Data.Map.Strict as Map
 import qualified Text.XML as Xml
 import qualified XmlUnscrambler.NamespaceRegistry as NamespaceRegistry
 import XmlUnscrambler.Prelude hiding (empty, fromList, insert, toList)
@@ -25,22 +25,26 @@ data NameMap a
 
 fromNodes :: NamespaceRegistry.NamespaceRegistry -> [Xml.Node] -> NameMap Xml.Element
 fromNodes nreg =
-  fromReverseList nreg . foldl' appendIfElement []
+  fromReverseList (flip NamespaceRegistry.resolveElementName nreg) . foldl' appendIfElement []
   where
     appendIfElement list = \case
       Xml.NodeElement element -> (Xml.elementName element, element) : list
       _ -> list
 
-fromList :: NamespaceRegistry.NamespaceRegistry -> [(Xml.Name, a)] -> NameMap a
-fromList nreg =
-  fromReverseList nreg . reverse
+fromAttributes :: NamespaceRegistry.NamespaceRegistry -> Map Xml.Name Text -> NameMap Text
+fromAttributes nreg =
+  fromList (flip NamespaceRegistry.resolveAttributeName nreg) . Map.toList
 
-fromReverseList :: NamespaceRegistry.NamespaceRegistry -> [(Xml.Name, a)] -> NameMap a
-fromReverseList nreg list =
+fromList :: (Xml.Name -> Maybe (Maybe Text, Text)) -> [(Xml.Name, a)] -> NameMap a
+fromList resolve =
+  fromReverseList resolve . reverse
+
+fromReverseList :: (Xml.Name -> Maybe (Maybe Text, Text)) -> [(Xml.Name, a)] -> NameMap a
+fromReverseList resolve list =
   foldr step NameMap list TupleHashMap.empty HashMap.empty
   where
     step (name, contents) next !map1 !map2 =
-      case NamespaceRegistry.resolveElementName name nreg of
+      case resolve name of
         Nothing -> next map1 map2
         Just (ns, name) ->
           case ns of

@@ -208,8 +208,17 @@ childrenByName =
 -- |
 -- Look up the first attribute by name and parse it.
 attributesByName :: ByName Content a -> Element a
-attributesByName =
-  error "TODO"
+attributesByName (ByName runByName) =
+  Element $ \nreg (Xml.Element _ attributes _) ->
+    let nameMap = NameMap.fromAttributes nreg attributes
+        newNreg = NamespaceRegistry.interpretAttributes attributes nreg
+     in case runByName nameMap (\content (Content parseContent) -> parseContent (\ns -> NamespaceRegistry.lookup ns nreg) content) of
+          OkByNameResult _ res -> Right res
+          NotFoundByNameResult unfoundNames ->
+            let availNames = NameMap.extractNames nameMap
+             in Left (NoneOfAttributesFoundByNameElementError unfoundNames availNames)
+          FailedDeeperByNameResult ns name err ->
+            Left (AttributeByNameElementError ns name err)
 
 -- |
 -- Children sequence by order.
