@@ -16,12 +16,6 @@ module XmlUnscrambler.AstParser
     attributesByName,
     astElement,
 
-    -- ** Content
-    Content,
-    textContent,
-    attoparsedContent,
-    qNameContent,
-
     -- ** Nodes
     Nodes,
     elementNode,
@@ -30,6 +24,12 @@ module XmlUnscrambler.AstParser
     -- ** ByName
     ByName,
     byName,
+
+    -- ** Content
+    Content,
+    textContent,
+    attoparsedContent,
+    qNameContent,
   )
 where
 
