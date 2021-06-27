@@ -57,8 +57,8 @@ insert alias uri (NamespaceRegistry map def) =
   NamespaceRegistry (HashMap.insert alias uri map) def
 
 setDefault :: Text -> NamespaceRegistry -> NamespaceRegistry
-setDefault =
-  error "TODO"
+setDefault uri (NamespaceRegistry map def) =
+  NamespaceRegistry map (Just uri)
 
 -- |
 -- Extend the registry by reading in the value if this is an \"xmlns\" attribute.
