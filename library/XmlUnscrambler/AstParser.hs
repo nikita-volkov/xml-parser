@@ -14,6 +14,7 @@ module XmlUnscrambler.AstParser
     children,
     childrenByName,
     attributesByName,
+    astElement,
 
     -- ** Content
     Content,
@@ -197,6 +198,12 @@ children (Nodes runNodes) =
   Element $ \nreg (Xml.Element _ _ nodes) ->
     runNodes (NodeConsumerState.new nodes nreg)
       & second fst
+
+-- |
+-- Expose the element's AST.
+astElement :: Element Xml.Element
+astElement =
+  Element $ const Right
 
 -- |
 -- Parser in the context of a sequence of nodes.
