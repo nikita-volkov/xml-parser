@@ -29,12 +29,15 @@ module XmlUnscrambler.AstParser
     Content,
     textContent,
     narrowedContent,
+    enumContent,
     attoparsedContent,
     qNameContent,
   )
 where
 
 import qualified Data.Attoparsec.Text as Attoparsec
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.List as List
 import qualified Text.Builder as Tb
 import qualified Text.XML as Xml
 import qualified XmlUnscrambler.NameMap as NameMap
@@ -145,6 +148,11 @@ data ContentError
   = ParsingContentError Text
   | NamespaceNotFoundContentError Text
   | UnexpectedValueContentError Text
+  | EnumContentError
+      [Text]
+      -- ^ List of expected values.
+      Text
+      -- ^ Actual value
 
 data NodeType
   = ElementNodeType
@@ -289,6 +297,26 @@ textContent =
 narrowedContent :: (Text -> Maybe a) -> Content a
 narrowedContent mapper =
   Content (const (\x -> maybe (Left (UnexpectedValueContentError x)) Right (mapper x)))
+
+-- |
+-- Map the content using a dictionary.
+enumContent :: [(Text, a)] -> Content a
+enumContent mappingList =
+  let !expectedKeysList =
+        fmap fst mappingList
+      mappingListLength =
+        length mappingList
+      !narrow =
+        if mappingListLength > 512
+          then
+            let !hashMap = HashMap.fromList mappingList
+             in flip HashMap.lookup hashMap
+          else flip List.lookup mappingList
+      extract a =
+        case narrow a of
+          Just b -> Right b
+          _ -> Left (EnumContentError expectedKeysList a)
+   in Content (const extract)
 
 -- |
 -- Parse the content using the \"attoparsec\" parser.
