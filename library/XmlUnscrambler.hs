@@ -26,7 +26,7 @@ module XmlUnscrambler
     -- ** Content
     AstParser.Content,
     AstParser.textContent,
-    AstParser.mappedContent,
+    AstParser.narrowedContent,
     AstParser.attoparsedContent,
     AstParser.qNameContent,
   )
