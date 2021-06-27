@@ -24,7 +24,7 @@ module XmlUnscrambler.AstParser
     -- ** Nodes
     Nodes,
     elementNode,
-    textNode,
+    contentNode,
 
     -- ** ByName
     ByName,
@@ -232,8 +232,8 @@ elementNode (Element runElement) =
 
 -- |
 -- Consume the next node expecting it to be textual and parse its contents.
-textNode :: Content content -> Nodes content
-textNode (Content parseContent) =
+contentNode :: Content content -> Nodes content
+contentNode (Content parseContent) =
   Nodes $ \x ->
     case NodeConsumerState.fetchNode x of
       Just (node, x) -> case node of

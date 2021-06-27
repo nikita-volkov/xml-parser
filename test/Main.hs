@@ -35,21 +35,21 @@ main =
                     return (prefix <> [childByName "b" bContent])
 
           let parser =
-                Xu.childrenByName $ many $ Xu.byName Nothing "b" $ Xu.children $ Xu.textNode $ Xu.textContent
+                Xu.childrenByName $ many $ Xu.byName Nothing "b" $ Xu.children $ Xu.contentNode $ Xu.textContent
               result = Xu.parseByteString parser xml
 
           return (result === Right bContents),
         testCase "Namespaces" $ do
-          let parser = Xu.childrenByName $ Xu.byName (Just "B") "c" $ Xu.children $ Xu.textNode $ Xu.textContent
+          let parser = Xu.childrenByName $ Xu.byName (Just "B") "c" $ Xu.children $ Xu.contentNode $ Xu.textContent
               result = Xu.parseByteString parser "<a xmlns:b=\"B\"><b:c>d</b:c></a>"
           assertEqual "" (Right "d") result,
         testCase "Error" $ do
-          let parser = Xu.childrenByName $ Xu.byName Nothing "c" $ Xu.children $ Xu.textNode $ Xu.textContent
+          let parser = Xu.childrenByName $ Xu.byName Nothing "c" $ Xu.children $ Xu.contentNode $ Xu.textContent
               result = Xu.parseByteString parser "<a><b>c</b><d/></a>"
           assertEqual "" (Left "/: None of following child element names found: [c]. Names available: [b, d]") result,
         testCase "QName content" $ do
           let input = "<root xmlns:abc='abc-uri'>abc:d</root>"
-              parser = Xu.children $ Xu.textNode $ Xu.qNameContent
+              parser = Xu.children $ Xu.contentNode $ Xu.qNameContent
            in assertEqual "" (Right (Just "abc-uri", "d")) (Xu.parseByteString parser input)
       ]
 
