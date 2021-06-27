@@ -352,7 +352,7 @@ instance Monad (ByName parser) where
 
 instance Alternative (ByName parser) where
   empty =
-    ByName $ const $ const $ NotFoundByNameResult []
+    ByName $ \_ _ -> NotFoundByNameResult []
   ByName runL <|> ByName runR =
     ByName $ \map parse -> case runL map parse of
       OkByNameResult map lRes -> OkByNameResult map lRes
