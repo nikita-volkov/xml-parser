@@ -133,6 +133,7 @@ data ElementError
       -- ^ Offset.
       NodeError
       -- ^ Reason.
+  | NameElementError Text
 
 data NodeError
   = UnexpectedNodeTypeNodeError
@@ -171,14 +172,23 @@ newtype Element a
 -- |
 -- Parse namespace and name with the given function.
 elementName :: (Maybe Text -> Text -> Either Text a) -> Element a
-elementName =
-  error "TODO"
+elementName parse =
+  Element $ \nreg (Xml.Element name _ _) ->
+    case NamespaceRegistry.resolveElementName name nreg of
+      Nothing -> Left (NameElementError ("Unresolvable name: " <> fromString (show name)))
+      Just (ns, name) -> parse ns name & first NameElementError
 
 -- |
 -- Fail if the namespace and name don't match the provided.
 elementNameIs :: Maybe Text -> Text -> Element ()
-elementNameIs =
-  error "TODO"
+elementNameIs ns name =
+  elementName $ \actualNs actualName ->
+    if actualNs == ns
+      then
+        if actualName == name
+          then Right ()
+          else Left ("Unexpected name: \"" <> actualName <> "\". Expecting: \"" <> name <> "\"")
+      else Left ("Unexpected namespace: \"" <> (fromString . show) actualNs <> "\". Expecting: \"" <> (fromString . show) ns <> "\"")
 
 -- |
 -- Look up elements by name and parse them.
