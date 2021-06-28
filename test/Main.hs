@@ -11,7 +11,7 @@ import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 import Test.Tasty.Runners
 import qualified Text.XML as Xc
-import qualified XmlUnscrambler as Xu
+import qualified XmlParser as Xu
 import Prelude hiding (assert)
 
 main =

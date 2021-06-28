@@ -1,6 +1,6 @@
 -- |
 -- A minimal wrapper over xml-conduit parsing API bringing it to our standards.
-module XmlUnscrambler.XmlConduitWrapper
+module XmlParser.XmlConduitWrapper
   ( parseByteString,
     parseLazyByteString,
     parseFile,
@@ -11,7 +11,7 @@ import qualified Data.ByteString.Lazy as LazyByteString
 import qualified Data.Text as Text
 import qualified Text.XML as XmlConduit
 import qualified Text.XML.Unresolved as XmlConduit (InvalidEventStream (..))
-import XmlUnscrambler.Prelude
+import XmlParser.Prelude
 
 parseByteString :: ByteString -> Either Text XmlConduit.Document
 parseByteString =

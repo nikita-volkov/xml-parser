@@ -1,4 +1,4 @@
-module XmlUnscrambler
+module XmlParser
   ( -- * Execution
     parseByteString,
     parseFile,
@@ -37,9 +37,9 @@ import qualified Data.ByteString.Lazy as LazyByteString
 import qualified Data.Text as Text
 import qualified Text.XML as XmlConduit
 import qualified Text.XML.Unresolved as XmlConduit (InvalidEventStream (..))
-import qualified XmlUnscrambler.AstParser as AstParser
-import XmlUnscrambler.Prelude
-import qualified XmlUnscrambler.XmlConduitWrapper as XmlConduitWrapper
+import qualified XmlParser.AstParser as AstParser
+import XmlParser.Prelude
+import qualified XmlParser.XmlConduitWrapper as XmlConduitWrapper
 
 -- |
 -- Parse XML bytestring.

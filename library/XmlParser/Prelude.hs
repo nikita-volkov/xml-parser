@@ -1,4 +1,4 @@
-module XmlUnscrambler.Prelude
+module XmlParser.Prelude
   ( module Exports,
     tryMapping,
   )

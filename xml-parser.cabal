@@ -1,9 +1,9 @@
 cabal-version: 3.0
-name: xml-unscrambler
+name: xml-parser
 version: 0.1
-synopsis: XML parser with powerful error-reporting and simple API
-homepage: https://github.com/nikita-volkov/xml-unscrambler
-bug-reports: https://github.com/nikita-volkov/xml-unscrambler/issues
+synopsis: XML parser with informative error-reporting and simple API
+homepage: https://github.com/nikita-volkov/xml-parser
+bug-reports: https://github.com/nikita-volkov/xml-parser/issues
 author: Nikita Volkov <nikita.y.volkov@mail.ru>
 maintainer: Nikita Volkov <nikita.y.volkov@mail.ru>
 copyright: (c) 2021 Nikita Volkov
@@ -13,7 +13,7 @@ build-type: Simple
 
 source-repository head
   type: git
-  location: git://github.com/nikita-volkov/xml-unscrambler.git
+  location: git://github.com/nikita-volkov/xml-parser.git
 
 library
   hs-source-dirs: library
@@ -22,16 +22,16 @@ library
   ghc-options:
     -funbox-strict-fields
   exposed-modules:
-    XmlUnscrambler
+    XmlParser
   other-modules:
-    XmlUnscrambler.AstParser
-    XmlUnscrambler.NameMap
-    XmlUnscrambler.NamespaceRegistry
-    XmlUnscrambler.NodeConsumerState
-    XmlUnscrambler.TupleHashMap
-    XmlUnscrambler.Prelude
-    XmlUnscrambler.XmlConduitWrapper
-    XmlUnscrambler.XmlSchemaAttoparsec
+    XmlParser.AstParser
+    XmlParser.NameMap
+    XmlParser.NamespaceRegistry
+    XmlParser.NodeConsumerState
+    XmlParser.TupleHashMap
+    XmlParser.Prelude
+    XmlParser.XmlConduitWrapper
+    XmlParser.XmlSchemaAttoparsec
   build-depends:
     attoparsec >=0.13 && <0.15,
     base >=4.11 && <5,
@@ -60,4 +60,4 @@ test-suite test
     tasty-hunit >=0.9 && <0.11,
     tasty-quickcheck >=0.9 && <0.11,
     xml-conduit,
-    xml-unscrambler,
+    xml-parser,

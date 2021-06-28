@@ -1,4 +1,4 @@
-module XmlUnscrambler.NodeConsumerState
+module XmlParser.NodeConsumerState
   ( NodeConsumerState,
     new,
     bumpOffset,
@@ -11,8 +11,8 @@ where
 
 import qualified Data.HashMap.Strict as HashMap
 import qualified Text.XML as Xml
-import qualified XmlUnscrambler.NamespaceRegistry as NamespaceRegistry
-import XmlUnscrambler.Prelude
+import qualified XmlParser.NamespaceRegistry as NamespaceRegistry
+import XmlParser.Prelude
 
 data NodeConsumerState
   = NodeConsumerState

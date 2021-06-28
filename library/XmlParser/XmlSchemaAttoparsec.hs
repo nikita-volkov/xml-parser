@@ -1,8 +1,8 @@
-module XmlUnscrambler.XmlSchemaAttoparsec where
+module XmlParser.XmlSchemaAttoparsec where
 
 import Data.Attoparsec.Text
 import qualified Data.Text as Text
-import XmlUnscrambler.Prelude hiding (takeWhile)
+import XmlParser.Prelude hiding (takeWhile)
 
 qName :: Parser (Maybe Text, Text)
 qName =

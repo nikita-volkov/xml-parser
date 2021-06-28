@@ -1,4 +1,4 @@
-module XmlUnscrambler.NamespaceRegistry
+module XmlParser.NamespaceRegistry
   ( NamespaceRegistry,
     new,
     lookup,
@@ -13,8 +13,8 @@ import qualified Data.Attoparsec.Text as Attoparsec
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Map.Strict as Map
 import qualified Text.XML as Xml
-import XmlUnscrambler.Prelude hiding (extend, insert, lookup)
-import qualified XmlUnscrambler.XmlSchemaAttoparsec as XmlSchemaAttoparsec
+import XmlParser.Prelude hiding (extend, insert, lookup)
+import qualified XmlParser.XmlSchemaAttoparsec as XmlSchemaAttoparsec
 
 data NamespaceRegistry
   = NamespaceRegistry

@@ -1,4 +1,4 @@
-module XmlUnscrambler.AstParser
+module XmlParser.AstParser
   ( -- * Execution
     parseElement,
     renderElementError,
@@ -40,11 +40,11 @@ import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List as List
 import qualified Text.Builder as Tb
 import qualified Text.XML as Xml
-import qualified XmlUnscrambler.NameMap as NameMap
-import qualified XmlUnscrambler.NamespaceRegistry as NamespaceRegistry
-import qualified XmlUnscrambler.NodeConsumerState as NodeConsumerState
-import XmlUnscrambler.Prelude
-import qualified XmlUnscrambler.XmlSchemaAttoparsec as XmlSchemaAttoparsec
+import qualified XmlParser.NameMap as NameMap
+import qualified XmlParser.NamespaceRegistry as NamespaceRegistry
+import qualified XmlParser.NodeConsumerState as NodeConsumerState
+import XmlParser.Prelude
+import qualified XmlParser.XmlSchemaAttoparsec as XmlSchemaAttoparsec
 
 -- |
 -- Parse an \"xml-conduit\" element AST.
