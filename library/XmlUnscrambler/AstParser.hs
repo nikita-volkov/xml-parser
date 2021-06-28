@@ -206,7 +206,7 @@ childrenByName =
             Left (ChildByNameElementError ns name err)
 
 -- |
--- Look up the first attribute by name and parse it.
+-- Look up the last attribute by name and parse it.
 attributesByName :: ByName Content a -> Element a
 attributesByName (ByName runByName) =
   Element $ \nreg (Xml.Element _ attributes _) ->
