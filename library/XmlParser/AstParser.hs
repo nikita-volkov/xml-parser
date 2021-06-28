@@ -80,6 +80,16 @@ simplifyElementError =
         elementError (name a b : collectedPath) c
       ChildAtOffsetElementError a b ->
         nodeError (Tb.decimal a : collectedPath) b
+      AttributeByNameElementError a b c ->
+        (("@" <> name a b) : collectedPath, contentError c)
+      NoneOfAttributesFoundByNameElementError a b ->
+        ( collectedPath,
+          "Found none of the following attributes: " <> sortedList (uncurry name) a
+            <> ". The following are available: "
+            <> sortedList (uncurry name) b
+        )
+      NameElementError a ->
+        (collectedPath, Tb.text a)
     nodeError collectedPath = \case
       UnexpectedNodeTypeNodeError a b ->
         ( collectedPath,
@@ -101,6 +111,10 @@ simplifyElementError =
         Tb.text a
       NamespaceNotFoundContentError a ->
         "Namespace not found: " <> Tb.text a
+      UnexpectedValueContentError a ->
+        "Unexpected value: " <> Tb.text a
+      EnumContentError a b ->
+        "Unexpected value: " <> Tb.text b <> ". Expecting one of the following: " <> sortedList Tb.text a
 
 -- |
 -- Error in the context of an element.
@@ -211,7 +225,6 @@ attributesByName :: ByName Content a -> Element a
 attributesByName (ByName runByName) =
   Element $ \nreg (Xml.Element _ attributes _) ->
     let nameMap = NameMap.fromAttributes nreg attributes
-        newNreg = NamespaceRegistry.interpretAttributes attributes nreg
      in case runByName nameMap (\content (Content parseContent) -> parseContent (\ns -> NamespaceRegistry.lookup ns nreg) content) of
           OkByNameResult _ res -> Right res
           NotFoundByNameResult unfoundNames ->

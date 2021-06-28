@@ -9,7 +9,6 @@ module XmlParser.NodeConsumerState
   )
 where
 
-import qualified Data.HashMap.Strict as HashMap
 import qualified Text.XML as Xml
 import qualified XmlParser.NamespaceRegistry as NamespaceRegistry
 import XmlParser.Prelude

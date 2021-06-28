@@ -33,10 +33,7 @@ module XmlParser
   )
 where
 
-import qualified Data.ByteString.Lazy as LazyByteString
-import qualified Data.Text as Text
 import qualified Text.XML as XmlConduit
-import qualified Text.XML.Unresolved as XmlConduit (InvalidEventStream (..))
 import qualified XmlParser.AstParser as AstParser
 import XmlParser.Prelude
 import qualified XmlParser.XmlConduitWrapper as XmlConduitWrapper
