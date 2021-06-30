@@ -8,7 +8,7 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
 import qualified Text.XML as Xc
-import qualified XmlParser as Xu
+import qualified XmlParser as Xp
 import Prelude hiding (assert)
 
 main =
@@ -32,22 +32,22 @@ main =
                     return (prefix <> [childByName "b" bContent])
 
           let parser =
-                Xu.childrenByName $ many $ Xu.byName Nothing "b" $ Xu.children $ Xu.contentNode $ Xu.textContent
-              result = Xu.parseByteString parser xml
+                Xp.childrenByName $ many $ Xp.byName Nothing "b" $ Xp.children $ Xp.contentNode $ Xp.textContent
+              result = Xp.parseByteString parser xml
 
           return (result === Right bContents),
         testCase "Namespaces" $ do
-          let parser = Xu.childrenByName $ Xu.byName (Just "B") "c" $ Xu.children $ Xu.contentNode $ Xu.textContent
-              result = Xu.parseByteString parser "<a xmlns:b=\"B\"><b:c>d</b:c></a>"
+          let parser = Xp.childrenByName $ Xp.byName (Just "B") "c" $ Xp.children $ Xp.contentNode $ Xp.textContent
+              result = Xp.parseByteString parser "<a xmlns:b=\"B\"><b:c>d</b:c></a>"
           assertEqual "" (Right "d") result,
         testCase "Error" $ do
-          let parser = Xu.childrenByName $ Xu.byName Nothing "c" $ Xu.children $ Xu.contentNode $ Xu.textContent
-              result = Xu.parseByteString parser "<a><b>c</b><d/></a>"
+          let parser = Xp.childrenByName $ Xp.byName Nothing "c" $ Xp.children $ Xp.contentNode $ Xp.textContent
+              result = Xp.parseByteString parser "<a><b>c</b><d/></a>"
           assertEqual "" (Left "/: None of following child element names found: [c]. Names available: [b, d]") result,
         testCase "QName content" $ do
           let input = "<root xmlns:abc='abc-uri'>abc:d</root>"
-              parser = Xu.children $ Xu.contentNode $ Xu.qNameContent
-           in assertEqual "" (Right (Just "abc-uri", "d")) (Xu.parseByteString parser input)
+              parser = Xp.children $ Xp.contentNode $ Xp.qNameContent
+           in assertEqual "" (Right (Just "abc-uri", "d")) (Xp.parseByteString parser input)
       ]
 
 documentByteString :: Xc.Document -> ByteString
