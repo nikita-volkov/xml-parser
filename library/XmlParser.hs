@@ -1,6 +1,7 @@
 module XmlParser
   ( -- * Execution
     parseByteString,
+    parseLazyByteString,
     parseFile,
 
     -- * Parsers by context
@@ -33,6 +34,7 @@ module XmlParser
   )
 where
 
+import qualified Data.ByteString.Lazy as Lbs
 import qualified Text.XML as XmlConduit
 import qualified XmlParser.AstParser as AstParser
 import XmlParser.Prelude
@@ -43,6 +45,12 @@ import qualified XmlParser.XmlConduitWrapper as XmlConduitWrapper
 parseByteString :: AstParser.Element a -> ByteString -> Either Text a
 parseByteString astParser input =
   XmlConduitWrapper.parseByteString input >>= parseXmlConduitDocument astParser
+
+-- |
+-- Parse XML lazy bytestring.
+parseLazyByteString :: AstParser.Element a -> Lbs.ByteString -> Either Text a
+parseLazyByteString astParser input =
+  XmlConduitWrapper.parseLazyByteString input >>= parseXmlConduitDocument astParser
 
 -- |
 -- Parse XML file.
