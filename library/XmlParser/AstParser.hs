@@ -40,6 +40,7 @@ import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List as List
 import qualified Text.Builder as Tb
 import qualified Text.XML as Xml
+import qualified XmlParser.ElementDestructionState as ElementDestructionState
 import qualified XmlParser.NameMap as NameMap
 import qualified XmlParser.NamespaceRegistry as NamespaceRegistry
 import qualified XmlParser.NodeConsumerState as NodeConsumerState
@@ -53,6 +54,8 @@ parseElement (Element run) element =
   run
     (NamespaceRegistry.interpretAttributes (Xml.elementAttributes element) NamespaceRegistry.new)
     element
+    ElementDestructionState.new
+    & fmap fst
 
 renderElementError :: ElementError -> Text
 renderElementError =
@@ -178,17 +181,31 @@ data NodeType
 -- |
 -- Parse in the context of an element node.
 newtype Element a
-  = Element (NamespaceRegistry.NamespaceRegistry -> Xml.Element -> Either ElementError a)
+  = Element
+      ( NamespaceRegistry.NamespaceRegistry ->
+        Xml.Element ->
+        ElementDestructionState.ElementDestructionState ->
+        Either ElementError (a, ElementDestructionState.ElementDestructionState)
+      )
   deriving
     (Functor, Applicative, Monad)
-    via (ReaderT (NamespaceRegistry.NamespaceRegistry) (ReaderT Xml.Element (Except ElementError)))
+    via ( ReaderT
+            (NamespaceRegistry.NamespaceRegistry)
+            ( ReaderT
+                Xml.Element
+                ( StateT
+                    ElementDestructionState.ElementDestructionState
+                    (Except ElementError)
+                )
+            )
+        )
 
 -- |
 -- Parse namespace and name with the given function.
 elementName :: (Maybe Text -> Text -> Either Text a) -> Element a
 elementName parse =
-  Element $ \nreg (Xml.Element name _ _) ->
-    case NamespaceRegistry.resolveElementName name nreg of
+  Element $ \nreg (Xml.Element name _ _) state ->
+    fmap (,state) $ case NamespaceRegistry.resolveElementName name nreg of
       Nothing -> Left (NameElementError ("Unresolvable name: " <> fromString (show name)))
       Just (ns, name) -> parse ns name & first NameElementError
 
@@ -207,12 +224,12 @@ elementNameIs ns name =
 -- |
 -- Look up elements by name and parse them.
 childrenByName :: ByName Element a -> Element a
-childrenByName =
-  \(ByName runByName) -> Element $ \nreg (Xml.Element _ attributes nodes) ->
-    let nameMap = NameMap.fromNodes nreg nodes
-        newNreg = NamespaceRegistry.interpretAttributes attributes nreg
-     in case runByName nameMap (\element (Element run) -> run newNreg element) of
-          OkByNameResult _ res -> Right res
+childrenByName (ByName runByName) =
+  Element $ \nreg element@(Xml.Element _ attributes _) state ->
+    let (nameMap, state) = ElementDestructionState.resolveChildNames (ElementDestructionState.ElementDestructionContext nreg element) state
+        deeperNreg = NamespaceRegistry.interpretAttributes attributes nreg
+     in case runByName nameMap (\element (Element run) -> fmap fst (run deeperNreg element ElementDestructionState.new)) of
+          OkByNameResult _ res -> Right (res, state)
           NotFoundByNameResult unfoundNames ->
             let availNames = NameMap.extractNames nameMap
              in Left (NoneOfChildrenFoundByNameElementError unfoundNames availNames)
@@ -223,10 +240,10 @@ childrenByName =
 -- Look up the last attribute by name and parse it.
 attributesByName :: ByName Content a -> Element a
 attributesByName (ByName runByName) =
-  Element $ \nreg (Xml.Element _ attributes _) ->
-    let nameMap = NameMap.fromAttributes nreg attributes
+  Element $ \nreg element state ->
+    let (nameMap, state) = ElementDestructionState.resolveAttributeNames (ElementDestructionState.ElementDestructionContext nreg element) state
      in case runByName nameMap (\content (Content parseContent) -> parseContent (\ns -> NamespaceRegistry.lookup ns nreg) content) of
-          OkByNameResult _ res -> Right res
+          OkByNameResult _ res -> Right (res, state)
           NotFoundByNameResult unfoundNames ->
             let availNames = NameMap.extractNames nameMap
              in Left (NoneOfAttributesFoundByNameElementError unfoundNames availNames)
@@ -237,15 +254,16 @@ attributesByName (ByName runByName) =
 -- Children sequence by order.
 children :: Nodes a -> Element a
 children (Nodes runNodes) =
-  Element $ \nreg (Xml.Element _ _ nodes) ->
+  Element $ \nreg (Xml.Element _ _ nodes) state ->
     runNodes (NodeConsumerState.new nodes nreg)
-      & second fst
+      & fmap fst
+      & fmap (,state)
 
 -- |
 -- Expose the element's AST.
 astElement :: Element Xml.Element
 astElement =
-  Element $ const Right
+  Element $ \_ element state -> Right (element, state)
 
 -- |
 -- Parser in the context of a sequence of nodes.
@@ -266,7 +284,7 @@ elementNode (Element runElement) =
           bimap
             (ChildAtOffsetElementError (NodeConsumerState.getOffset x) . ElementNodeError)
             (,NodeConsumerState.bumpOffset x)
-            (runElement (NodeConsumerState.getNamespaceRegistry x) element)
+            (fmap fst (runElement (NodeConsumerState.getNamespaceRegistry x) element ElementDestructionState.new))
         Xml.NodeInstruction _ -> failWithUnexpectedNodeType InstructionNodeType
         Xml.NodeContent _ -> failWithUnexpectedNodeType ContentNodeType
         Xml.NodeComment _ -> failWithUnexpectedNodeType CommentNodeType
