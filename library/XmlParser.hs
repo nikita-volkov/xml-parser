@@ -3,6 +3,7 @@ module XmlParser
     parseByteString,
     parseLazyByteString,
     parseFile,
+    parseElementAst,
 
     -- * Parsers by context
 
@@ -44,21 +45,27 @@ import qualified XmlParser.XmlConduitWrapper as XmlConduitWrapper
 -- Parse XML bytestring.
 parseByteString :: AstParser.Element a -> ByteString -> Either Text a
 parseByteString astParser input =
-  XmlConduitWrapper.parseByteString input >>= parseXmlConduitDocument astParser
+  XmlConduitWrapper.parseByteString input >>= parseDocumentAst astParser
 
 -- |
 -- Parse XML lazy bytestring.
 parseLazyByteString :: AstParser.Element a -> Lbs.ByteString -> Either Text a
 parseLazyByteString astParser input =
-  XmlConduitWrapper.parseLazyByteString input >>= parseXmlConduitDocument astParser
+  XmlConduitWrapper.parseLazyByteString input >>= parseDocumentAst astParser
 
 -- |
 -- Parse XML file.
 parseFile :: AstParser.Element a -> FilePath -> IO (Either Text a)
 parseFile astParser path =
-  fmap (>>= parseXmlConduitDocument astParser) $
+  fmap (>>= parseDocumentAst astParser) $
     XmlConduitWrapper.parseFile path
 
-parseXmlConduitDocument :: AstParser.Element a -> XmlConduit.Document -> Either Text a
-parseXmlConduitDocument astParser =
-  first AstParser.renderElementError . AstParser.parseElement astParser . XmlConduit.documentRoot
+parseDocumentAst :: AstParser.Element a -> XmlConduit.Document -> Either Text a
+parseDocumentAst astParser =
+  parseElementAst astParser . XmlConduit.documentRoot
+
+-- |
+-- Parse an \"xml-conduit\" element AST.
+parseElementAst :: AstParser.Element a -> XmlConduit.Element -> Either Text a
+parseElementAst astParser =
+  first AstParser.renderElementError . AstParser.parseElement astParser
