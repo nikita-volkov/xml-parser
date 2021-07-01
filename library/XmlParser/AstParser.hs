@@ -29,6 +29,7 @@ module XmlParser.AstParser
     Content,
     textContent,
     narrowedContent,
+    refinedContent,
     enumContent,
     attoparsedContent,
     qNameContent,
@@ -347,6 +348,12 @@ textContent =
 narrowedContent :: (Text -> Maybe a) -> Content a
 narrowedContent mapper =
   Content (const (\x -> maybe (Left (UnexpectedValueContentError x)) Right (mapper x)))
+
+-- |
+-- Parse the content with a possibly failing function.
+refinedContent :: (Text -> Either Text a) -> Content a
+refinedContent refine =
+  Content (const (first ParsingContentError . refine))
 
 -- |
 -- Map the content using a dictionary.

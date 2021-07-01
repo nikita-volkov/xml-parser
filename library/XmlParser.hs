@@ -29,6 +29,7 @@ module XmlParser
     AstParser.Content,
     AstParser.textContent,
     AstParser.narrowedContent,
+    AstParser.refinedContent,
     AstParser.enumContent,
     AstParser.attoparsedContent,
     AstParser.qNameContent,
