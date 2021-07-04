@@ -94,6 +94,8 @@ simplifyElementError =
         )
       NameElementError a ->
         (collectedPath, Tb.text a)
+      UserElementError a ->
+        (collectedPath, Tb.text a)
     nodeError collectedPath = \case
       UnexpectedNodeTypeNodeError a b ->
         ( collectedPath,
