@@ -85,7 +85,7 @@ simplifyElementError =
       ChildAtOffsetElementError a b ->
         nodeError (Tb.decimal a : collectedPath) b
       AttributeByNameElementError a b c ->
-        (("@" <> name a b) : collectedPath, contentError c)
+        (("@" <> name a b) : collectedPath, maybeContentError c)
       NoneOfAttributesFoundByNameElementError a b ->
         ( collectedPath,
           "Found none of the following attributes: " <> sortedList (uncurry name) a
@@ -106,13 +106,16 @@ simplifyElementError =
       ElementNodeError a ->
         elementError collectedPath a
       TextNodeError a ->
-        (collectedPath, contentError a)
+        (collectedPath, maybeContentError a)
     nodeType = \case
       ElementNodeType -> "element"
       InstructionNodeType -> "instruction"
       ContentNodeType -> "content"
       CommentNodeType -> "comment"
+    maybeContentError = maybe "Empty alternative" contentError
     contentError = \case
+      UserContentError a ->
+        Tb.text a
       ParsingContentError a ->
         Tb.text a
       NamespaceNotFoundContentError a ->
@@ -130,7 +133,7 @@ data ElementError
   = AttributeByNameElementError
       (Maybe Text)
       Text
-      ContentError
+      (Maybe ContentError)
   | NoneOfAttributesFoundByNameElementError
       [(Maybe Text, Text)]
       -- ^ Not found.
@@ -165,7 +168,7 @@ data NodeError
       -- ^ Actual.
   | NotAvailableNodeError
   | ElementNodeError ElementError
-  | TextNodeError ContentError
+  | TextNodeError (Maybe ContentError)
 
 data ContentError
   = ParsingContentError Text
@@ -176,6 +179,7 @@ data ContentError
       -- ^ List of expected values.
       Text
       -- ^ Actual value
+  | UserContentError Text
 
 data NodeType
   = ElementNodeType
@@ -343,8 +347,13 @@ contentNode (Content parseContent) =
 -- which can be the value of an attribute or a textual node.
 newtype Content content
   = -- | Parser in the context of an xml namespace URI by alias lookup function.
-    Content ((Text -> Maybe Text) -> Text -> Either ContentError content)
-  deriving (Functor)
+    Content ((Text -> Maybe Text) -> Text -> Either (Maybe ContentError) content)
+  deriving
+    (Functor, Applicative, Monad, Alternative, MonadPlus)
+    via (ReaderT (Text -> Maybe Text) (ExceptT (Last ContentError) ((->) Text)))
+
+instance MonadFail Content where
+  fail = fromString >>> UserContentError >>> Just >>> Left >>> const >>> const >>> Content
 
 -- |
 -- Return the content as it is.
@@ -356,13 +365,13 @@ textContent =
 -- Map the content to a type if it's valid.
 narrowedContent :: (Text -> Maybe a) -> Content a
 narrowedContent mapper =
-  Content (const (\x -> maybe (Left (UnexpectedValueContentError x)) Right (mapper x)))
+  Content (const (\x -> maybe (Left (Just (UnexpectedValueContentError x))) Right (mapper x)))
 
 -- |
 -- Parse the content with a possibly failing function.
 refinedContent :: (Text -> Either Text a) -> Content a
 refinedContent refine =
-  Content (const (first ParsingContentError . refine))
+  Content (const (first (Just . ParsingContentError) . refine))
 
 -- |
 -- Map the content using a dictionary.
@@ -381,14 +390,14 @@ enumContent mappingList =
       extract a =
         case narrow a of
           Just b -> Right b
-          _ -> Left (EnumContentError expectedKeysList a)
+          _ -> Left (Just (EnumContentError expectedKeysList a))
    in Content (const extract)
 
 -- |
 -- Parse the content using the \"attoparsec\" parser.
 attoparsedContent :: Attoparsec.Parser a -> Content a
 attoparsedContent parser =
-  Content (const (first (ParsingContentError . fromString) . Attoparsec.parseOnly parser))
+  Content (const (first (Just . ParsingContentError . fromString) . Attoparsec.parseOnly parser))
 
 -- |
 -- Parse the content as XML Schema QName,
@@ -408,9 +417,9 @@ qNameContent =
     Right (ns, name) -> case ns of
       Just ns -> case lookup ns of
         Just uri -> Right (Just uri, name)
-        Nothing -> Left (NamespaceNotFoundContentError ns)
+        Nothing -> Left (Just (NamespaceNotFoundContentError ns))
       Nothing -> Right (Nothing, name)
-    Left err -> Left (ParsingContentError (fromString err))
+    Left err -> Left (Just (ParsingContentError (fromString err)))
 
 -- * ByName
 
