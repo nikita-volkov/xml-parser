@@ -152,6 +152,8 @@ data ElementError
       NodeError
       -- ^ Reason.
   | NameElementError Text
+  | -- | Error raised by the user of this library.
+    UserElementError Text
 
 data NodeError
   = UnexpectedNodeTypeNodeError
@@ -201,6 +203,9 @@ newtype Element a
             )
         )
 
+instance MonadFail Element where
+  fail = fromString >>> UserElementError >>> Left >>> const >>> const >>> const >>> Element
+
 -- |
 -- Parse namespace and name with the given function.
 elementName :: (Maybe Text -> Text -> Either Text a) -> Element a
@@ -227,29 +232,31 @@ elementNameIs ns name =
 childrenByName :: ByName Element a -> Element a
 childrenByName (ByName runByName) =
   Element $ \nreg element@(Xml.Element _ attributes _) state ->
-    let (nameMap, state) = ElementDestructionState.resolveChildNames (ElementDestructionState.ElementDestructionContext nreg element) state
-        deeperNreg = NamespaceRegistry.interpretAttributes attributes nreg
-     in case runByName nameMap (\element (Element run) -> fmap fst (run deeperNreg element ElementDestructionState.new)) of
+    case ElementDestructionState.resolveChildNames (ElementDestructionState.ElementDestructionContext nreg element) state of
+      (nameMap, state) ->
+        case runByName nameMap (\element (Element run) -> fmap fst (run deeperNreg element ElementDestructionState.new)) of
           OkByNameResult _ res -> Right (res, state)
           NotFoundByNameResult unfoundNames ->
             let availNames = NameMap.extractNames nameMap
              in Left (NoneOfChildrenFoundByNameElementError unfoundNames availNames)
           FailedDeeperByNameResult ns name err ->
             Left (ChildByNameElementError ns name err)
+        where
+          deeperNreg = NamespaceRegistry.interpretAttributes attributes nreg
 
 -- |
 -- Look up the last attribute by name and parse it.
 attributesByName :: ByName Content a -> Element a
 attributesByName (ByName runByName) =
   Element $ \nreg element state ->
-    let (nameMap, state) = ElementDestructionState.resolveAttributeNames (ElementDestructionState.ElementDestructionContext nreg element) state
-     in case runByName nameMap (\content (Content parseContent) -> parseContent (\ns -> NamespaceRegistry.lookup ns nreg) content) of
-          OkByNameResult _ res -> Right (res, state)
-          NotFoundByNameResult unfoundNames ->
-            let availNames = NameMap.extractNames nameMap
-             in Left (NoneOfAttributesFoundByNameElementError unfoundNames availNames)
-          FailedDeeperByNameResult ns name err ->
-            Left (AttributeByNameElementError ns name err)
+    case ElementDestructionState.resolveAttributeNames (ElementDestructionState.ElementDestructionContext nreg element) state of
+      (nameMap, state) -> case runByName nameMap (\content (Content parseContent) -> parseContent (\ns -> NamespaceRegistry.lookup ns nreg) content) of
+        OkByNameResult _ res -> Right (res, state)
+        NotFoundByNameResult unfoundNames ->
+          let availNames = NameMap.extractNames nameMap
+           in Left (NoneOfAttributesFoundByNameElementError unfoundNames availNames)
+        FailedDeeperByNameResult ns name err ->
+          Left (AttributeByNameElementError ns name err)
 
 -- |
 -- Children sequence by order.
