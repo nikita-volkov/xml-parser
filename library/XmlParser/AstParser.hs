@@ -70,7 +70,7 @@ simplifyElementError =
       mappend "[" . flip mappend "]" . Tb.intercalate ", " . fmap renderer . sort
     name a b =
       case a of
-        Just a -> Tb.text a <> ":" <> Tb.text b
+        Just a -> "{" <> Tb.text a <> "}" <> Tb.text b
         Nothing -> Tb.text b
     elementError collectedPath = \case
       NoneOfChildrenFoundByNameElementError a b ->
