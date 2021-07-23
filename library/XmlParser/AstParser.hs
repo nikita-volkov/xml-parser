@@ -243,7 +243,7 @@ childrenByName (ByName runByName) =
         case runByName nameMap (\element (Element run) -> fmap fst (run deeperNreg element ElementDestructionState.new)) of
           OkByNameResult _ res -> Right (res, state)
           NotFoundByNameResult unfoundNames ->
-            let availNames = NameMap.extractNames nameMap
+            let availNames = nub $ NameMap.extractNames nameMap
              in Left (NoneOfChildrenFoundByNameElementError unfoundNames availNames)
           FailedDeeperByNameResult ns name err ->
             Left (ChildByNameElementError ns name err)
@@ -259,7 +259,7 @@ attributesByName (ByName runByName) =
       (nameMap, state) -> case runByName nameMap (\content (Content parseContent) -> parseContent (\ns -> NamespaceRegistry.lookup ns nreg) content) of
         OkByNameResult _ res -> Right (res, state)
         NotFoundByNameResult unfoundNames ->
-          let availNames = NameMap.extractNames nameMap
+          let availNames = nub $ NameMap.extractNames nameMap
            in Left (NoneOfAttributesFoundByNameElementError unfoundNames availNames)
         FailedDeeperByNameResult ns name err ->
           Left (AttributeByNameElementError ns name err)
