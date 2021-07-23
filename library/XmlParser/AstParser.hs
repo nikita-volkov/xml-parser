@@ -41,12 +41,12 @@ import qualified Data.HashMap.Strict as HashMap
 import qualified Data.List as List
 import qualified Text.Builder as Tb
 import qualified Text.XML as Xml
+import qualified XmlParser.Attoparsec as Attoparsec
 import qualified XmlParser.ElementDestructionState as ElementDestructionState
 import qualified XmlParser.NameMap as NameMap
 import qualified XmlParser.NamespaceRegistry as NamespaceRegistry
 import qualified XmlParser.NodeConsumerState as NodeConsumerState
 import XmlParser.Prelude
-import qualified XmlParser.XmlSchemaAttoparsec as XmlSchemaAttoparsec
 
 -- |
 -- Parse an \"xml-conduit\" element AST.
@@ -413,13 +413,13 @@ attoparsedContent parser =
 -- - https://en.wikipedia.org/wiki/QName
 qNameContent :: Content (Maybe Text, Text)
 qNameContent =
-  Content $ \lookup content -> case Attoparsec.parseOnly XmlSchemaAttoparsec.qName content of
+  Content $ \lookup content -> case Attoparsec.parseStripped Attoparsec.qName content of
     Right (ns, name) -> case ns of
       Just ns -> case lookup ns of
         Just uri -> Right (Just uri, name)
         Nothing -> Left (Just (NamespaceNotFoundContentError ns))
       Nothing -> Right (Nothing, name)
-    Left err -> Left (Just (ParsingContentError (fromString err)))
+    Left err -> Left (Just (ParsingContentError err))
 
 -- * ByName
 

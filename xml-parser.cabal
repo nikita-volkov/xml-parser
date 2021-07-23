@@ -25,6 +25,7 @@ library
     XmlParser
   other-modules:
     XmlParser.AstParser
+    XmlParser.Attoparsec
     XmlParser.ElementDestructionState
     XmlParser.NameMap
     XmlParser.NamespaceRegistry
@@ -32,7 +33,6 @@ library
     XmlParser.TupleHashMap
     XmlParser.Prelude
     XmlParser.XmlConduitWrapper
-    XmlParser.XmlSchemaAttoparsec
   build-depends:
     attoparsec >=0.13 && <0.15,
     base >=4.11 && <5,

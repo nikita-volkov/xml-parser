@@ -13,8 +13,8 @@ import qualified Data.Attoparsec.Text as Attoparsec
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Map.Strict as Map
 import qualified Text.XML as Xml
+import qualified XmlParser.Attoparsec as Attoparsec
 import XmlParser.Prelude hiding (insert, lookup)
-import qualified XmlParser.XmlSchemaAttoparsec as XmlSchemaAttoparsec
 
 data NamespaceRegistry
   = NamespaceRegistry
@@ -43,7 +43,7 @@ resolveName useDef (Xml.Name localName uri ns) (NamespaceRegistry map def) =
         Just uri -> Just (Just uri, localName)
         Nothing -> Nothing
       Nothing ->
-        case Attoparsec.parseOnly XmlSchemaAttoparsec.qName localName of
+        case Attoparsec.parseOnly Attoparsec.qName localName of
           Right (ns, localName) -> case ns of
             Just ns -> case HashMap.lookup ns map of
               Just uri -> Just (Just uri, localName)
@@ -66,7 +66,7 @@ interpretAttribute :: Xml.Name -> Text -> NamespaceRegistry -> NamespaceRegistry
 interpretAttribute (Xml.Name localName namespace prefix) uri =
   case namespace of
     Nothing -> case prefix of
-      Nothing -> case Attoparsec.parseOnly XmlSchemaAttoparsec.qName localName of
+      Nothing -> case Attoparsec.parseOnly Attoparsec.qName localName of
         Right (Just "xmlns", name) -> insert name uri
         Right (Nothing, "xmlns") -> setDefault uri
         _ -> id

@@ -1,8 +1,14 @@
-module XmlParser.XmlSchemaAttoparsec where
+module XmlParser.Attoparsec where
 
 import Data.Attoparsec.Text
 import qualified Data.Text as Text
 import XmlParser.Prelude hiding (takeWhile)
+
+parseStripped :: Parser a -> Text -> Either Text a
+parseStripped p = first fromString . parseOnly (stripped p)
+  where
+    stripped :: Parser a -> Parser a
+    stripped p = skipSpace *> p <* skipSpace <* endOfInput
 
 qName :: Parser (Maybe Text, Text)
 qName =
