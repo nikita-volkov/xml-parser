@@ -47,7 +47,17 @@ main =
         testCase "QName content" $ do
           let input = "<root xmlns:abc='abc-uri'>abc:d</root>"
               parser = Xp.children $ Xp.contentNode $ Xp.qNameContent
-           in assertEqual "" (Right (Just "abc-uri", "d")) (Xp.parseByteString parser input)
+           in assertEqual "" (Right (Just "abc-uri", "d")) (Xp.parseByteString parser input),
+        testGroup
+          "Regressions"
+          [ testCase "Empty string content parsing" $
+              let input = "<Value xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xsi:type=\"xsd:string\"></Value>" :: ByteString
+                  parser = Xp.children $ Xp.contentNode $ Xp.textContent
+               in assertEqual
+                    ""
+                    (Right "")
+                    (Xp.parseByteString parser input)
+          ]
       ]
 
 documentByteString :: Xc.Document -> ByteString
