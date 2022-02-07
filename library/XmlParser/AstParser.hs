@@ -338,7 +338,16 @@ contentNode (Content parseContent) =
                   (NodeConsumerState.getOffset x)
                   (UnexpectedNodeTypeNodeError ContentNodeType actualType)
               )
-      _ -> Left (ChildAtOffsetElementError (NodeConsumerState.getOffset x) NotAvailableNodeError)
+      _ ->
+        case NodeConsumerState.getOffset x of
+          0 ->
+            case parseContent (\ns -> NodeConsumerState.lookupNamespace ns x) mempty of
+              Right parsedContent ->
+                Right (parsedContent, NodeConsumerState.bumpOffset x)
+              Left contentError ->
+                Left (ChildAtOffsetElementError 0 (TextNodeError contentError))
+          offset ->
+            Left (ChildAtOffsetElementError offset NotAvailableNodeError)
 
 -- * Content
 
