@@ -36,16 +36,16 @@ module XmlParser.AstParser
   )
 where
 
-import qualified Data.Attoparsec.Text as Attoparsec
-import qualified Data.HashMap.Strict as HashMap
-import qualified Data.List as List
-import qualified Text.Builder as Tb
-import qualified Text.XML as Xml
-import qualified XmlParser.Attoparsec as Attoparsec
-import qualified XmlParser.ElementDestructionState as ElementDestructionState
-import qualified XmlParser.NameMap as NameMap
-import qualified XmlParser.NamespaceRegistry as NamespaceRegistry
-import qualified XmlParser.NodeConsumerState as NodeConsumerState
+import Data.Attoparsec.Text qualified as Attoparsec
+import Data.HashMap.Strict qualified as HashMap
+import Data.List qualified as List
+import Text.Builder qualified as Tb
+import Text.XML qualified as Xml
+import XmlParser.Attoparsec qualified as Attoparsec
+import XmlParser.ElementDestructionState qualified as ElementDestructionState
+import XmlParser.NameMap qualified as NameMap
+import XmlParser.NamespaceRegistry qualified as NamespaceRegistry
+import XmlParser.NodeConsumerState qualified as NodeConsumerState
 import XmlParser.Prelude
 
 -- |
@@ -88,7 +88,8 @@ simplifyElementError =
         (("@" <> name a b) : collectedPath, maybeContentError c)
       NoneOfAttributesFoundByNameElementError a b ->
         ( collectedPath,
-          "Found none of the following attributes: " <> sortedList (uncurry name) a
+          "Found none of the following attributes: "
+            <> sortedList (uncurry name) a
             <> ". The following are available: "
             <> sortedList (uncurry name) b
         )
@@ -135,37 +136,37 @@ data ElementError
       Text
       (Maybe ContentError)
   | NoneOfAttributesFoundByNameElementError
+      -- | Not found.
       [(Maybe Text, Text)]
-      -- ^ Not found.
+      -- | Out of.
       [(Maybe Text, Text)]
-      -- ^ Out of.
   | NoneOfChildrenFoundByNameElementError
+      -- | Not found.
       [(Maybe Text, Text)]
-      -- ^ Not found.
+      -- | Out of.
       [(Maybe Text, Text)]
-      -- ^ Out of.
   | ChildByNameElementError
+      -- | Namespace.
       (Maybe Text)
-      -- ^ Namespace.
+      -- | Name.
       Text
-      -- ^ Name.
+      -- | Reason. Not 'NodeError' because only element nodes can be looked up by name.
       ElementError
-      -- ^ Reason. Not 'NodeError' because only element nodes can be looked up by name.
   | ChildAtOffsetElementError
+      -- | Offset.
       Int
-      -- ^ Offset.
+      -- | Reason.
       NodeError
-      -- ^ Reason.
   | NameElementError Text
   | -- | Error raised by the user of this library.
     UserElementError Text
 
 data NodeError
   = UnexpectedNodeTypeNodeError
+      -- | Expected.
       NodeType
-      -- ^ Expected.
+      -- | Actual.
       NodeType
-      -- ^ Actual.
   | NotAvailableNodeError
   | ElementNodeError ElementError
   | TextNodeError (Maybe ContentError)
@@ -175,10 +176,10 @@ data ContentError
   | NamespaceNotFoundContentError Text
   | UnexpectedValueContentError Text
   | EnumContentError
+      -- | List of expected values.
       [Text]
-      -- ^ List of expected values.
+      -- | Actual value
       Text
-      -- ^ Actual value
   | UserContentError Text
 
 data NodeType

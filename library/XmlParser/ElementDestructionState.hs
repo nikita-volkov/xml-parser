@@ -7,9 +7,9 @@ module XmlParser.ElementDestructionState
   )
 where
 
-import qualified Text.XML as Xml
-import qualified XmlParser.NameMap as NameMap
-import qualified XmlParser.NamespaceRegistry as NamespaceRegistry
+import Text.XML qualified as Xml
+import XmlParser.NameMap qualified as NameMap
+import XmlParser.NamespaceRegistry qualified as NamespaceRegistry
 import XmlParser.Prelude
 
 -- |
@@ -19,10 +19,10 @@ import XmlParser.Prelude
 -- You can use this as a parameter to a reader monad.
 data ElementDestructionContext
   = ElementDestructionContext
+      -- | Namespace registry as seen from the context of this node.
       NamespaceRegistry.NamespaceRegistry
-      -- ^ Namespace registry as seen from the context of this node.
+      -- | The node that we're in the context of.
       Xml.Element
-      -- ^ The node that we're in the context of.
 
 -- |
 -- Used for the state of a parser in the context of specifically element node.
@@ -32,10 +32,10 @@ data ElementDestructionContext
 -- You can use this as a parameter to the state monad.
 data ElementDestructionState
   = ElementDestructionState
+      -- | Cached attribute by name lookup map.
       (Maybe (NameMap.NameMap Text))
-      -- ^ Cached attribute by name lookup map.
+      -- | Cached child element by name lookup map.
       (Maybe (NameMap.NameMap Xml.Element))
-      -- ^ Cached child element by name lookup map.
 
 new :: ElementDestructionState
 new = ElementDestructionState Nothing Nothing

@@ -9,18 +9,18 @@ module XmlParser.NodeConsumerState
   )
 where
 
-import qualified Text.XML as Xml
-import qualified XmlParser.NamespaceRegistry as NamespaceRegistry
+import Text.XML qualified as Xml
+import XmlParser.NamespaceRegistry qualified as NamespaceRegistry
 import XmlParser.Prelude
 
 data NodeConsumerState
   = NodeConsumerState
+      -- | Nodes.
       [Xml.Node]
-      -- ^ Nodes.
+      -- | Offset.
       Int
-      -- ^ Offset.
+      -- | Namespace registry.
       NamespaceRegistry.NamespaceRegistry
-      -- ^ Namespace registry.
 
 new :: [Xml.Node] -> NamespaceRegistry.NamespaceRegistry -> NodeConsumerState
 new nodes nsReg = NodeConsumerState nodes 0 nsReg

@@ -8,7 +8,7 @@ module XmlParser.TupleHashMap
   )
 where
 
-import qualified Data.HashMap.Strict as HashMap
+import Data.HashMap.Strict qualified as HashMap
 import XmlParser.Prelude hiding (empty, fromList, toList)
 
 newtype TupleHashMap k1 k2 v = TupleHashMap (HashMap k1 (HashMap k2 v))

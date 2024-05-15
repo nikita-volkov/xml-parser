@@ -36,11 +36,11 @@ module XmlParser
   )
 where
 
-import qualified Data.ByteString.Lazy as Lbs
-import qualified Text.XML as XmlConduit
-import qualified XmlParser.AstParser as AstParser
+import Data.ByteString.Lazy qualified as Lbs
+import Text.XML qualified as XmlConduit
+import XmlParser.AstParser qualified as AstParser
 import XmlParser.Prelude
-import qualified XmlParser.XmlConduitWrapper as XmlConduitWrapper
+import XmlParser.XmlConduitWrapper qualified as XmlConduitWrapper
 
 -- |
 -- Parse XML bytestring.
@@ -58,8 +58,8 @@ parseLazyByteString astParser input =
 -- Parse XML file.
 parseFile :: AstParser.Element a -> FilePath -> IO (Either Text a)
 parseFile astParser path =
-  fmap (>>= parseDocumentAst astParser) $
-    XmlConduitWrapper.parseFile path
+  fmap (>>= parseDocumentAst astParser)
+    $ XmlConduitWrapper.parseFile path
 
 parseDocumentAst :: AstParser.Element a -> XmlConduit.Document -> Either Text a
 parseDocumentAst astParser =

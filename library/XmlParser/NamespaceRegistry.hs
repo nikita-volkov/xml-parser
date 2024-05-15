@@ -9,11 +9,11 @@ module XmlParser.NamespaceRegistry
   )
 where
 
-import qualified Data.Attoparsec.Text as Attoparsec
-import qualified Data.HashMap.Strict as HashMap
-import qualified Data.Map.Strict as Map
-import qualified Text.XML as Xml
-import qualified XmlParser.Attoparsec as Attoparsec
+import Data.Attoparsec.Text qualified as Attoparsec
+import Data.HashMap.Strict qualified as HashMap
+import Data.Map.Strict qualified as Map
+import Text.XML qualified as Xml
+import XmlParser.Attoparsec qualified as Attoparsec
 import XmlParser.Prelude hiding (insert, lookup)
 
 data NamespaceRegistry

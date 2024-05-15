@@ -9,19 +9,19 @@ module XmlParser.NameMap
   )
 where
 
-import qualified Data.HashMap.Strict as HashMap
-import qualified Data.Map.Strict as Map
-import qualified Text.XML as Xml
-import qualified XmlParser.NamespaceRegistry as NamespaceRegistry
+import Data.HashMap.Strict qualified as HashMap
+import Data.Map.Strict qualified as Map
+import Text.XML qualified as Xml
+import XmlParser.NamespaceRegistry qualified as NamespaceRegistry
 import XmlParser.Prelude hiding (empty, fromList, insert, toList)
-import qualified XmlParser.TupleHashMap as TupleHashMap
+import XmlParser.TupleHashMap qualified as TupleHashMap
 
 data NameMap a
   = NameMap
+      -- | Namespaced
       (TupleHashMap.TupleHashMap Text Text [a])
-      -- ^ Namespaced
+      -- | Unnamespaced
       (HashMap Text [a])
-      -- ^ Unnamespaced
 
 fromNodes :: NamespaceRegistry.NamespaceRegistry -> [Xml.Node] -> NameMap Xml.Element
 fromNodes nreg =

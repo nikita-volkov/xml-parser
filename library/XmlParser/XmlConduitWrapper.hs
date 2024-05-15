@@ -7,10 +7,10 @@ module XmlParser.XmlConduitWrapper
   )
 where
 
-import qualified Data.ByteString.Lazy as LazyByteString
-import qualified Data.Text as Text
-import qualified Text.XML as XmlConduit
-import qualified Text.XML.Unresolved as XmlConduit (InvalidEventStream (..))
+import Data.ByteString.Lazy qualified as LazyByteString
+import Data.Text qualified as Text
+import Text.XML qualified as XmlConduit
+import Text.XML.Unresolved qualified as XmlConduit (InvalidEventStream (..))
 import XmlParser.Prelude
 
 parseByteString :: ByteString -> Either Text XmlConduit.Document
@@ -34,11 +34,11 @@ settings =
 renderError :: SomeException -> Text
 renderError e
   | Just e <- fromException @XmlConduit.XMLException e =
-    fromString (show e)
+      fromString (show e)
   | Just e <- fromException @XmlConduit.InvalidEventStream e =
-    fromString (show e)
+      fromString (show e)
   | Just (XmlConduit.UnresolvedEntityException e) <- fromException @XmlConduit.UnresolvedEntityException e =
-    "Unresolved entities: " <> Text.intercalate "," (toList e)
+      "Unresolved entities: " <> Text.intercalate "," (toList e)
   | otherwise =
-    -- FIXME: Find other cases and do something more user-friendly about them
-    fromString (show e)
+      -- FIXME: Find other cases and do something more user-friendly about them
+      fromString (show e)

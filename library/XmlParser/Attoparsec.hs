@@ -1,7 +1,7 @@
 module XmlParser.Attoparsec where
 
 import Data.Attoparsec.Text
-import qualified Data.Text as Text
+import Data.Text qualified as Text
 import XmlParser.Prelude hiding (takeWhile)
 
 parseStripped :: Parser a -> Text -> Either Text a
@@ -56,25 +56,30 @@ ncName =
     return (Text.cons a b)
   where
     nameStartCharPredicate x =
-      x >= 'A' && x <= 'Z'
-        || x == '_'
-        || x >= 'a' && x <= 'z'
-        || x >= '\xC0' && x <= '\xD6'
-        || x >= '\xD8' && x <= '\xF6'
-        || x >= '\xF8' && x <= '\x2FF'
-        || x >= '\x370' && x <= '\x37D'
-        || x >= '\x37F' && x <= '\x1FFF'
-        || x >= '\x200C' && x <= '\x200D'
-        || x >= '\x2070' && x <= '\x218F'
-        || x >= '\x2C00' && x <= '\x2FEF'
-        || x >= '\x3001' && x <= '\xD7FF'
-        || x >= '\xF900' && x <= '\xFDCF'
-        || x >= '\xFDF0' && x <= '\xFFFD'
-        || x >= '\x10000' && x <= '\xEFFFF'
+      or
+        [ x >= 'A' && x <= 'Z',
+          x == '_',
+          x >= 'a' && x <= 'z',
+          x >= '\xC0' && x <= '\xD6',
+          x >= '\xD8' && x <= '\xF6',
+          x >= '\xF8' && x <= '\x2FF',
+          x >= '\x370' && x <= '\x37D',
+          x >= '\x37F' && x <= '\x1FFF',
+          x >= '\x200C' && x <= '\x200D',
+          x >= '\x2070' && x <= '\x218F',
+          x >= '\x2C00' && x <= '\x2FEF',
+          x >= '\x3001' && x <= '\xD7FF',
+          x >= '\xF900' && x <= '\xFDCF',
+          x >= '\xFDF0' && x <= '\xFFFD',
+          x >= '\x10000' && x <= '\xEFFFF'
+        ]
     nameCharPredicate x =
-      x == '-' || x == '.'
-        || x >= '0' && x <= '9'
-        || x == '\xB7'
-        || x >= '\x0300' && x <= '\x036F'
-        || x >= '\x203F' && x <= '\x2040'
-        || nameStartCharPredicate x
+      or
+        [ x == '-',
+          x == '.',
+          x >= '0' && x <= '9',
+          x == '\xB7',
+          x >= '\x0300' && x <= '\x036F',
+          x >= '\x203F' && x <= '\x2040',
+          nameStartCharPredicate x
+        ]
