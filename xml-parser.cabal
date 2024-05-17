@@ -107,6 +107,7 @@ test-suite test
   hs-source-dirs: test
   main-is: Main.hs
   other-modules:
+
   build-depends:
     quickcheck-instances >=0.3.11 && <0.4,
     rerebase >=1.6.1 && <2,
