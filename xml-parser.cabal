@@ -96,7 +96,7 @@ library
     containers >=0.6 && <0.9,
     hashable >=1.2 && <2,
     text >=1.2.4 && <3,
-    text-builder >=0.6.6.2 && <0.7,
+    text-builder,
     transformers >=0.5 && <0.8,
     unordered-containers ^>=0.2.14,
     xml-conduit >=1.9.1.1 && <1.11,
@@ -107,7 +107,6 @@ test-suite test
   hs-source-dirs: test
   main-is: Main.hs
   other-modules:
-
   build-depends:
     quickcheck-instances >=0.3.11 && <0.4,
     rerebase >=1.6.1 && <2,

@@ -39,8 +39,9 @@ where
 import Data.Attoparsec.Text qualified as Attoparsec
 import Data.HashMap.Strict qualified as HashMap
 import Data.List qualified as List
-import Text.Builder qualified as Tb
 import Text.XML qualified as Xml
+import TextBuilder (TextBuilder)
+import TextBuilder qualified
 import XmlParser.Attoparsec qualified as Attoparsec
 import XmlParser.ElementDestructionState qualified as ElementDestructionState
 import XmlParser.NameMap qualified as NameMap
@@ -60,18 +61,18 @@ parseElement (Element run) element =
 
 renderElementError :: ElementError -> Text
 renderElementError =
-  Tb.run . (\(a, b) -> "/" <> Tb.intercalate "/" (reverse a) <> ": " <> b) . simplifyElementError
+  TextBuilder.toText . (\(a, b) -> "/" <> TextBuilder.intercalate "/" (reverse a) <> ": " <> b) . simplifyElementError
 
-simplifyElementError :: ElementError -> ([Tb.Builder], Tb.Builder)
+simplifyElementError :: ElementError -> ([TextBuilder], TextBuilder)
 simplifyElementError =
   elementError []
   where
     sortedList renderer =
-      mappend "[" . flip mappend "]" . Tb.intercalate ", " . fmap renderer . sort
+      mappend "[" . flip mappend "]" . TextBuilder.intercalate ", " . fmap renderer . sort
     name a b =
       case a of
-        Just _ -> Tb.text b
-        Nothing -> Tb.text b
+        Just _ -> TextBuilder.text b
+        Nothing -> TextBuilder.text b
     elementError collectedPath = \case
       NoneOfChildrenFoundByNameElementError a b ->
         ( collectedPath,
@@ -83,7 +84,7 @@ simplifyElementError =
       ChildByNameElementError a b c ->
         elementError (name a b : collectedPath) c
       ChildAtOffsetElementError a b ->
-        nodeError (Tb.decimal a : collectedPath) b
+        nodeError (TextBuilder.decimal a : collectedPath) b
       AttributeByNameElementError a b c ->
         (("@" <> name a b) : collectedPath, maybeContentError c)
       NoneOfAttributesFoundByNameElementError a b ->
@@ -94,9 +95,9 @@ simplifyElementError =
             <> sortedList (uncurry name) b
         )
       NameElementError a ->
-        (collectedPath, Tb.text a)
+        (collectedPath, TextBuilder.text a)
       UserElementError a ->
-        (collectedPath, Tb.text a)
+        (collectedPath, TextBuilder.text a)
     nodeError collectedPath = \case
       UnexpectedNodeTypeNodeError a b ->
         ( collectedPath,
@@ -116,15 +117,15 @@ simplifyElementError =
     maybeContentError = maybe "Empty alternative" contentError
     contentError = \case
       UserContentError a ->
-        Tb.text a
+        TextBuilder.text a
       ParsingContentError a ->
-        Tb.text a
+        TextBuilder.text a
       NamespaceNotFoundContentError a ->
-        "Namespace not found: " <> Tb.text a
+        "Namespace not found: " <> TextBuilder.text a
       UnexpectedValueContentError a ->
-        "Unexpected value: " <> Tb.text a
+        "Unexpected value: " <> TextBuilder.text a
       EnumContentError a b ->
-        "Unexpected value: " <> Tb.text b <> ". Expecting one of the following: " <> sortedList Tb.text a
+        "Unexpected value: " <> TextBuilder.text b <> ". Expecting one of the following: " <> sortedList TextBuilder.text a
 
 -- |
 -- Error in the context of an element.
