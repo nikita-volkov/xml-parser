@@ -7,10 +7,10 @@ module XmlParser.XmlConduitWrapper
   )
 where
 
-import Data.ByteString.Lazy qualified as LazyByteString
-import Data.Text qualified as Text
-import Text.XML qualified as XmlConduit
-import Text.XML.Unresolved qualified as XmlConduit (InvalidEventStream (..))
+import qualified Data.ByteString.Lazy as LazyByteString
+import qualified Data.Text as Text
+import qualified Text.XML as XmlConduit
+import qualified Text.XML.Unresolved as XmlConduit (InvalidEventStream (..))
 import XmlParser.Prelude
 
 parseByteString :: ByteString -> Either Text XmlConduit.Document
