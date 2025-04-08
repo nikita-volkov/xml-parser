@@ -1,7 +1,7 @@
 module XmlParser.Attoparsec where
 
 import Data.Attoparsec.Text
-import Data.Text qualified as Text
+import qualified Data.Text as Text
 import XmlParser.Prelude hiding (takeWhile)
 
 parseStripped :: Parser a -> Text -> Either Text a

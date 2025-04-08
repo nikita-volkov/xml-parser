@@ -7,9 +7,9 @@ module XmlParser.ElementDestructionState
   )
 where
 
-import Text.XML qualified as Xml
-import XmlParser.NameMap qualified as NameMap
-import XmlParser.NamespaceRegistry qualified as NamespaceRegistry
+import qualified Text.XML as Xml
+import qualified XmlParser.NameMap as NameMap
+import qualified XmlParser.NamespaceRegistry as NamespaceRegistry
 import XmlParser.Prelude
 
 -- |

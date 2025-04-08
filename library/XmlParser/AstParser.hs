@@ -36,17 +36,17 @@ module XmlParser.AstParser
   )
 where
 
-import Data.Attoparsec.Text qualified as Attoparsec
-import Data.HashMap.Strict qualified as HashMap
-import Data.List qualified as List
-import Text.XML qualified as Xml
+import qualified Data.Attoparsec.Text as Attoparsec
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.List as List
+import qualified Text.XML as Xml
 import TextBuilder (TextBuilder)
-import TextBuilder qualified
-import XmlParser.Attoparsec qualified as Attoparsec
-import XmlParser.ElementDestructionState qualified as ElementDestructionState
-import XmlParser.NameMap qualified as NameMap
-import XmlParser.NamespaceRegistry qualified as NamespaceRegistry
-import XmlParser.NodeConsumerState qualified as NodeConsumerState
+import qualified TextBuilder
+import qualified XmlParser.Attoparsec as Attoparsec
+import qualified XmlParser.ElementDestructionState as ElementDestructionState
+import qualified XmlParser.NameMap as NameMap
+import qualified XmlParser.NamespaceRegistry as NamespaceRegistry
+import qualified XmlParser.NodeConsumerState as NodeConsumerState
 import XmlParser.Prelude
 
 -- |

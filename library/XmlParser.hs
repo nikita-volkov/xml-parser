@@ -36,11 +36,11 @@ module XmlParser
   )
 where
 
-import Data.ByteString.Lazy qualified as Lbs
-import Text.XML qualified as XmlConduit
-import XmlParser.AstParser qualified as AstParser
+import qualified Data.ByteString.Lazy as Lbs
+import qualified Text.XML as XmlConduit
+import qualified XmlParser.AstParser as AstParser
 import XmlParser.Prelude
-import XmlParser.XmlConduitWrapper qualified as XmlConduitWrapper
+import qualified XmlParser.XmlConduitWrapper as XmlConduitWrapper
 
 -- |
 -- Parse XML bytestring.

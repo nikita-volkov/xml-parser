@@ -2,13 +2,13 @@
 
 module Main where
 
-import Data.ByteString.Lazy qualified as LazyByteString
+import qualified Data.ByteString.Lazy as LazyByteString
 import Test.QuickCheck.Instances ()
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.QuickCheck
-import Text.XML qualified as Xc
-import XmlParser qualified as Xp
+import qualified Text.XML as Xc
+import qualified XmlParser as Xp
 import Prelude hiding (assert)
 
 main :: IO ()
